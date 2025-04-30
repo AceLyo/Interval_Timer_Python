@@ -33,6 +33,6 @@ QProgressBar {
     text-align: center;
 }
 QProgressBar::chunk {
-    background-color: #FFA500;  /* you can switch colors dynamically in code */
+    background-color: #FFA500; 
     width: 20px;
 }

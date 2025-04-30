@@ -14,8 +14,6 @@ from PyQt5.QtGui import QPixmap, QTransform, QFont, QIntValidator, QPalette, QCo
 
 import pygame
 
-
-
 # ------------------------------
 # Timer State Enumeration
 # ------------------------------
@@ -111,6 +109,8 @@ class WorkoutTimer(QMainWindow):
         font_label.setPointSize(18)
         font_button = QFont()
         font_button.setPointSize(20)
+        font_button_small = QFont()
+        font_button_small.setPointSize(9)
 
         # Heading
         self.heading = QLabel("Workout Interval Timer")
@@ -133,6 +133,21 @@ class WorkoutTimer(QMainWindow):
             slider.setMinimumWidth(240)
             slider.valueChanged.connect(self.slider_changed)
             setattr(self, f"{attr}_slider", slider)
+            slider.setStyleSheet("""
+                QSlider::groove:horizontal {
+                    height: 15px;
+                    margin: 0px;
+                }
+                QSlider::handle:horizontal {
+                    background: #222;
+                    border: 2px solid #555;
+                    width: 18px;
+                }
+                QSlider::handle:horizontal:hover {
+                    background: #888;
+                }
+            """)
+                                 
             hbox.addWidget(slider)
 
             text_box = QLineEdit()
@@ -187,6 +202,34 @@ class WorkoutTimer(QMainWindow):
         self.progress_bar.setTextVisible(True)
         self.progress_bar.setFormat("%p%")
         layout.addWidget(self.progress_bar)
+
+        layout.addSpacing(15)
+
+        # Add Always on Top toggle
+        self.always_on_top = QPushButton("Always on Top")
+        self.always_on_top.setCheckable(True)
+        self.always_on_top.setFont(font_button_small)
+        self.always_on_top.setFixedWidth(180)
+        self.always_on_top.clicked.connect(self.toggle_always_on_top)
+        self.always_on_top.setStyleSheet("""
+            QPushButton {
+                padding: 5px;
+                border: 2px solid #666;
+                border-radius: 15px;
+                background-color: #444;
+            }
+            QPushButton:checked {
+                background-color: #2a5699;
+                border-color: #1a3b6d;
+            }
+            QPushButton:hover {
+                background-color: #555;
+            }
+            QPushButton:checked:hover {
+                background-color: #366bb8;
+            }
+        """)
+        layout.addWidget(self.always_on_top)
 
         # Fanfare display
         self.fanfare_label = QLabel()
@@ -284,6 +327,13 @@ class WorkoutTimer(QMainWindow):
 
     def trigger_visual_fanfare(self):
         self.fanfare_start_time = time.monotonic()
+
+    def toggle_always_on_top(self):
+        if self.always_on_top.isChecked():
+            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+        else:
+            self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
+        self.show()  # show the window again
 
     def update_timer(self):
         # Timing logic
