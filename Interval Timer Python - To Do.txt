@@ -1,6 +1,11 @@
 ---------------- To Do ----------------
+- exe version
 
-- Feature: dot indication mode
+- Fix: get fanfare visuals working
+
+- Fix: allow window min size to be smaller
+
+- Feature: hovering over always on top and minimalist mode toggles gives pop up info
 
 - Feature: add custom icon
 
@@ -48,3 +53,4 @@ for 3 seconds at the end of all rounds
 
 - Feature: always on top toggle
 
+- Feature: dot indication mode

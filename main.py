@@ -7,12 +7,22 @@ from dataclasses import dataclass, asdict
 
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QSlider, QProgressBar, QLineEdit
+    QLabel, QPushButton, QSlider, QProgressBar, QLineEdit, QMenu
 )
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QPixmap, QTransform, QFont, QIntValidator, QPalette, QColor
+from PyQt5.QtCore import Qt, QTimer, QPoint
+from PyQt5.QtGui import QPixmap, QTransform, QFont, QIntValidator, QPalette, QColor, QPainter, QPen, QBrush
 
 import pygame
+
+# ------------------------------
+# Utility Function for Resource Path
+# ------------------------------
+def resource_path(relative_path):
+    """Get the absolute path to a resource, works for dev and PyInstaller."""
+    if hasattr(sys, '_MEIPASS'):
+        # Running as a PyInstaller executable
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 # ------------------------------
 # Timer State Enumeration
@@ -60,6 +70,56 @@ class Settings:
             print("Error saving settings:", e)
 
 # ------------------------------
+# Minimalist Widget
+# ------------------------------
+class MinimalistWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(40, 40)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.color = QColor("#3D3D3D")
+        
+        # Create context menu
+        self.context_menu = QMenu(self)
+        self.exit_minimalist = self.context_menu.addAction("Exit Minimalist Mode")
+        self.exit_app = self.context_menu.addAction("Exit Application")
+        
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # Draw circle
+        painter.setBrush(QBrush(self.color))
+        painter.setPen(Qt.NoPen)
+        painter.drawEllipse(0, 0, 40, 40)
+        
+    def mousePressEvent(self, event):
+        if event.button() == Qt.RightButton:
+            # Show context menu
+            action = self.context_menu.exec_(self.mapToGlobal(event.pos()))
+            if action == self.exit_minimalist:
+                # Signal parent to exit minimalist mode
+                self.parent().toggle_minimalist_mode()
+            elif action == self.exit_app:
+                QApplication.quit()
+        else:
+            self.old_pos = event.globalPos()
+            
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            # Get parent QMainWindow and toggle minimalist mode
+            parent = self.parent()
+            if parent:
+                parent.minimalist_mode = True  # Ensure mode is set before toggling
+                parent.toggle_minimalist_mode()
+
+    def mouseMoveEvent(self, event):
+        delta = QPoint(event.globalPos() - self.old_pos)
+        self.move(self.x() + delta.x(), self.y() + delta.y())
+        self.old_pos = event.globalPos()
+
+# ------------------------------
 # Main Workout Timer Application
 # ------------------------------
 class WorkoutTimer(QMainWindow):
@@ -85,6 +145,10 @@ class WorkoutTimer(QMainWindow):
         self.work_finish_audio = "work_finish.mp3"
         self.rest_finish_audio = "rest_finish.mp3"
         self.complete_finish_audio = "complete_finish.mp3"
+
+        # Minimalist mode
+        self.minimalist_mode = False
+        self.minimalist_widget = None
 
         # Setup the GUI
         self.initUI()
@@ -205,6 +269,10 @@ class WorkoutTimer(QMainWindow):
 
         layout.addSpacing(15)
 
+        # Create horizontal layout for toggle buttons
+        toggle_layout = QHBoxLayout()
+        toggle_layout.setSpacing(10)
+
         # Add Always on Top toggle
         self.always_on_top = QPushButton("Always on Top")
         self.always_on_top.setCheckable(True)
@@ -229,8 +297,37 @@ class WorkoutTimer(QMainWindow):
                 background-color: #366bb8;
             }
         """)
-        layout.addWidget(self.always_on_top)
+        toggle_layout.addWidget(self.always_on_top)
 
+        # Add Minimalist Mode toggle
+        self.minimalist_button = QPushButton("Minimalist Mode")
+        self.minimalist_button.setCheckable(True)
+        self.minimalist_button.setFont(font_button_small)
+        self.minimalist_button.setFixedWidth(180)
+        self.minimalist_button.clicked.connect(self.toggle_minimalist_mode)
+        self.minimalist_button.setStyleSheet("""
+            QPushButton {
+                padding: 5px;
+                border: 2px solid #666;
+                border-radius: 15px;
+                background-color: #444;
+            }
+            QPushButton:checked {
+                background-color: #2a5699;
+                border-color: #1a3b6d;
+            }
+            QPushButton:hover {
+                background-color: #555;
+            }
+            QPushButton:checked:hover {
+                background-color: #366bb8;
+            }
+        """)
+        toggle_layout.addWidget(self.minimalist_button)
+
+        # Add toggle layout to main layout
+        layout.addLayout(toggle_layout)
+        
         # Fanfare display
         self.fanfare_label = QLabel()
         self.fanfare_label.setAlignment(Qt.AlignCenter)
@@ -335,6 +432,22 @@ class WorkoutTimer(QMainWindow):
             self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
         self.show()  # show the window again
 
+    def toggle_minimalist_mode(self):
+        if not self.minimalist_mode:  # Entering minimalist mode
+            self.minimalist_mode = True
+            if not self.minimalist_widget:
+                self.minimalist_widget = MinimalistWidget(self)
+                self.minimalist_widget.move(self.x(), self.y())
+            self.minimalist_widget.show()
+            self.hide()
+            self.minimalist_button.setChecked(True)
+        else:  # Exiting minimalist mode
+            self.minimalist_mode = False
+            if self.minimalist_widget:
+                self.minimalist_widget.hide()
+            self.show()
+            self.minimalist_button.setChecked(False)
+
     def update_timer(self):
         # Timing logic
         if self.start_time is not None:
@@ -413,6 +526,18 @@ class WorkoutTimer(QMainWindow):
         self.resume_button.setVisible(self.state in [TimerState.PausedLeadUp, TimerState.PausedWorkout, TimerState.PausedRest])
         self.stop_button.setVisible(self.state != TimerState.Idle)
 
+        # Update Minimalist Widget color
+        if self.minimalist_mode and self.minimalist_widget:
+            if self.state in [TimerState.LeadUp, TimerState.PausedLeadUp]:
+                self.minimalist_widget.color = QColor("#FFA500")
+            elif self.state in [TimerState.Workout, TimerState.PausedWorkout]:
+                self.minimalist_widget.color = QColor("#3BA458")
+            elif self.state in [TimerState.Rest, TimerState.PausedRest]:
+                self.minimalist_widget.color = QColor("#3877A2")
+            else:
+                self.minimalist_widget.color = QColor("#3D3D3D")
+            self.minimalist_widget.update()
+
 
 if __name__ == "__main__":
     # Theme setup
@@ -432,7 +557,9 @@ if __name__ == "__main__":
 
     app.setPalette(dark_palette)
 
-    with open("style.qss", "r") as f:
+    # Load the style.qss file
+    style_file = resource_path("style.qss")
+    with open(style_file, "r") as f:
         app.setStyleSheet(f.read())
 
     # Create the application and main window
