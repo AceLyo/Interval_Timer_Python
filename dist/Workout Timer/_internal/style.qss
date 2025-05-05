@@ -1,0 +1,38 @@
+QMainWindow {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgb(14, 32, 48), stop:1 rgb(26, 27, 27));
+}
+
+QProgressBar {
+    min-height: 25px;
+    border: 2px solid #34495e;
+    border-radius: 5px;
+    text-align: center;
+}
+
+QLabel {
+    color: #ecf0f1;
+    font-family: "Segoe UI";
+}
+
+QPushButton {
+    background-color:rgb(41, 108, 209);
+    color: #ecf0f1;
+    border-radius: 8px;
+    padding: 8px;
+}
+QPushButton:hover {
+    background-color: rgb(78, 130, 207);
+}
+QPushButton:pressed {
+    background-color: rgb(11, 63, 139);
+}
+QProgressBar {
+    border: 2px solid #34495e;
+    border-radius: 5px;
+    text-align: center;
+}
+QProgressBar::chunk {
+    background-color: #FFA500; 
+    width: 20px;
+}
