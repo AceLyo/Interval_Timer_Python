@@ -36,4 +36,4 @@ The program uses the following configuration options:
 
 ## License
 
-This program is licensed under the MIT License. See `LICENSE` for details.
+This program is licensed under the MIT License.
