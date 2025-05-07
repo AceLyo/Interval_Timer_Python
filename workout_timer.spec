@@ -13,7 +13,8 @@ a = Analysis(
         ('style.qss', '.'),
         ('work_finish.mp3', '.'),
         ('rest_finish.mp3', '.'),
-        ('complete_finish.mp3', '.')
+        ('complete_finish.mp3', '.'),
+        ('icon.ico', '.')
     ],
     hiddenimports=['pygame'],  # Hidden imports not detected automatically
     hookspath=[],  # Custom hooks for PyInstaller

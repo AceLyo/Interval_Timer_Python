@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QLabel, QPushButton, QSlider, QProgressBar, QLineEdit, QMenu
 )
 from PyQt5.QtCore import Qt, QTimer, QPoint
-from PyQt5.QtGui import QPixmap, QTransform, QFont, QIntValidator, QPalette, QColor, QPainter, QPen, QBrush
+from PyQt5.QtGui import QPixmap, QTransform, QFont, QIntValidator, QPalette, QColor, QPainter, QPen, QBrush, QIcon
 
 import pygame
 
@@ -125,6 +125,9 @@ class MinimalistWidget(QWidget):
 class WorkoutTimer(QMainWindow):
     def __init__(self):
         super().__init__()
+
+        # Set the window icon
+        self.setWindowIcon(QIcon(resource_path("icon.ico")))
 
         # Load settings
         self.settings = Settings.load_from_file()

@@ -6,7 +6,7 @@
 
 - Feature: hovering over always on top and minimalist mode toggles gives pop up info
 
-- Feature: add custom icon
+- 
 
 
 ---------------- Finished ----------------
@@ -55,3 +55,5 @@ for 3 seconds at the end of all rounds
 - Feature: dot indication mode
 
 - exe version
+
+- Feature: Icon file used in window and file explorer
