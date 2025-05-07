@@ -43,8 +43,8 @@ class TimerState(Enum):
 class Settings:
     workout_duration: int = 60   # in seconds
     rest_duration: int = 45      # in seconds
-    rounds: int = 10
     lead_up_duration: int = 5    # in seconds
+    rounds: int = 10
 
     @staticmethod
     def load_from_file(filename: str = "settings.json") -> 'Settings':
@@ -161,6 +161,7 @@ class WorkoutTimer(QMainWindow):
     def initUI(self):
         self.setWindowTitle("Workout Timer")
         self.setGeometry(100, 100, 450, 450)
+        # self.setMinimumSize(300, 300)
         central = QWidget()
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)

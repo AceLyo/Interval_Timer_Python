@@ -1,5 +1,4 @@
 ---------------- To Do ----------------
-- exe version
 
 - Fix: get fanfare visuals working
 
@@ -54,3 +53,5 @@ for 3 seconds at the end of all rounds
 - Feature: always on top toggle
 
 - Feature: dot indication mode
+
+- exe version
