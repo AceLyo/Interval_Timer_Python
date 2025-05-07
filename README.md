@@ -14,7 +14,8 @@ A simple interval timer for workouts, built with Python and PyQt5.
 
 ## Usage from exe
 
-1. Run exe file in main folder
+1.  Unzip downloaded folder
+2.  Run exe file in main folder
 
 ## Configuration
 
