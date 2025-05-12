@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QLabel, QPushButton, QSlider, QProgressBar, QLineEdit, QMenu
 )
 from PyQt5.QtCore import Qt, QTimer, QPoint
-from PyQt5.QtGui import QPixmap, QTransform, QFont, QIntValidator, QPalette, QColor, QPainter, QPen, QBrush, QIcon
+from PyQt5.QtGui import QPixmap, QTransform, QFont, QIntValidator, QPalette, QColor, QPainter, QBrush, QIcon
 
 import pygame
 
@@ -45,6 +45,7 @@ class Settings:
     rest_duration: int = 45      # in seconds
     lead_up_duration: int = 5    # in seconds
     rounds: int = 10
+    minimalist_mode_size: int = 80  # Default size for minimalist mode
 
     @staticmethod
     def load_from_file(filename: str = "settings.json") -> 'Settings':
@@ -75,15 +76,47 @@ class Settings:
 class MinimalistWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedSize(40, 40)
+        self.setFixedSize(Settings.minimalist_mode_size, Settings.minimalist_mode_size)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.color = QColor("#3D3D3D")
         
-        # Create context menu
+        # Create minimalist context menu
         self.context_menu = QMenu(self)
+        self.start_timer = self.context_menu.addAction("Start Timer")
+        self.pause_timer = self.context_menu.addAction("Pause Timer")
+        self.resume_timer = self.context_menu.addAction("Resume Timer")
+        self.stop_timer = self.context_menu.addAction("Stop Timer")
+        
+        # Add size adjustment options as a submenu
+        self.size_menu = self.context_menu.addMenu("Adjust Size")
+        self.increase_size_5 = self.size_menu.addAction("Increase Size by 5px")
+        self.increase_size_10 = self.size_menu.addAction("Increase Size by 10px")
+        self.increase_size_20 = self.size_menu.addAction("Increase Size by 20px")
+        self.decrease_size_5 = self.size_menu.addAction("Decrease Size by 5px")
+        self.decrease_size_10 = self.size_menu.addAction("Decrease Size by 10px")
+        self.decrease_size_20 = self.size_menu.addAction("Decrease Size by 20px")
+        
+        self.minimize_to_taskbar = self.context_menu.addAction("Minimize to Taskbar")
         self.exit_minimalist = self.context_menu.addAction("Exit Minimalist Mode")
         self.exit_app = self.context_menu.addAction("Exit Application")
+
+        # Connect actions to parent methods
+        self.start_timer.triggered.connect(self.parent().start_timer)
+        self.pause_timer.triggered.connect(self.parent().pause_timer)
+        self.resume_timer.triggered.connect(self.parent().resume_timer)
+        self.stop_timer.triggered.connect(self.parent().stop_timer)
+        self.minimize_to_taskbar.triggered.connect(self.exit_minimalist_and_minimize)
+        self.exit_minimalist.triggered.connect(self.parent().toggle_minimalist_mode)
+        self.exit_app.triggered.connect(QApplication.quit)
+        
+        # Connect size adjustment actions
+        self.increase_size_5.triggered.connect(lambda: self.adjust_size(5))
+        self.increase_size_10.triggered.connect(lambda: self.adjust_size(10))
+        self.increase_size_20.triggered.connect(lambda: self.adjust_size(20))
+        self.decrease_size_5.triggered.connect(lambda: self.adjust_size(-5))
+        self.decrease_size_10.triggered.connect(lambda: self.adjust_size(-10))
+        self.decrease_size_20.triggered.connect(lambda: self.adjust_size(-20))
         
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -92,17 +125,13 @@ class MinimalistWidget(QWidget):
         # Draw circle
         painter.setBrush(QBrush(self.color))
         painter.setPen(Qt.NoPen)
-        painter.drawEllipse(0, 0, 40, 40)
+        painter.drawEllipse(0, 0, self.width(), self.height())
         
     def mousePressEvent(self, event):
         if event.button() == Qt.RightButton:
             # Show context menu
+            self.update_context_menu()
             action = self.context_menu.exec_(self.mapToGlobal(event.pos()))
-            if action == self.exit_minimalist:
-                # Signal parent to exit minimalist mode
-                self.parent().toggle_minimalist_mode()
-            elif action == self.exit_app:
-                QApplication.quit()
         else:
             self.old_pos = event.globalPos()
             
@@ -118,6 +147,26 @@ class MinimalistWidget(QWidget):
         delta = QPoint(event.globalPos() - self.old_pos)
         self.move(self.x() + delta.x(), self.y() + delta.y())
         self.old_pos = event.globalPos()
+
+    # Update the context menu actions dynamically
+    def update_context_menu(self):
+        # Show or hide timer-related actions based on the current state
+        self.start_timer.setVisible(self.parent().state == TimerState.Idle)
+        self.pause_timer.setVisible(self.parent().state in [TimerState.LeadUp, TimerState.Workout, TimerState.Rest])
+        self.resume_timer.setVisible(self.parent().state in [TimerState.PausedLeadUp, TimerState.PausedWorkout, TimerState.PausedRest])
+        self.stop_timer.setVisible(self.parent().state not in [TimerState.Idle, TimerState.PausedLeadUp, TimerState.PausedWorkout, TimerState.PausedRest])
+
+    # Adjust the size of the widget
+    def adjust_size(self, delta):
+        new_size = max(20, self.width() + delta)  # Ensure the size doesn't go below 20px
+        self.setFixedSize(new_size, new_size)
+        self.update()
+
+    def exit_minimalist_and_minimize(self):
+        # Exit minimalist mode
+        self.parent().toggle_minimalist_mode()
+        # Minimize the application
+        self.parent().showMinimized()
 
 # ------------------------------
 # Main Workout Timer Application
@@ -198,6 +247,7 @@ class WorkoutTimer(QMainWindow):
             slider.setMinimum(2 if 'duration' in attr else 1)
             slider.setMaximum(180 if attr == 'workout_duration' else 90 if attr == 'rest_duration' else 50 if attr == 'rounds' else 10)
             slider.setValue(getattr(self, attr))
+            slider.setPageStep(1)
             slider.setMinimumWidth(240)
             slider.valueChanged.connect(self.slider_changed)
             setattr(self, f"{attr}_slider", slider)
@@ -413,9 +463,9 @@ class WorkoutTimer(QMainWindow):
         self.current_round = 0
         self.update_ui_elements()
 
-    def play_sound(self, is_work: bool, is_complete: bool):
+    def play_sound(self, is_work: bool, is_all_complete: bool):
         try:
-            if is_complete:
+            if is_all_complete:
                 audio_file = self.complete_finish_audio
             elif is_work:
                 audio_file = self.work_finish_audio
@@ -456,19 +506,23 @@ class WorkoutTimer(QMainWindow):
         # Timing logic
         if self.start_time is not None:
             elapsed = int(time.monotonic() - self.start_time)
+            # Lead Up
             if self.state == TimerState.LeadUp:
                 self.remaining_time = max(self.lead_up_duration - elapsed, 0)
                 if elapsed >= self.lead_up_duration:
                     self.state = TimerState.Workout
                     self.start_time = time.monotonic()
                     self.remaining_time = self.workout_duration
+                    self.play_sound(is_work=False, is_all_complete=False)
+            # Workout
             elif self.state == TimerState.Workout:
                 self.remaining_time = max(self.workout_duration - elapsed, 0)
                 if elapsed >= self.workout_duration:
                     self.state = TimerState.Rest
                     self.start_time = time.monotonic()
                     self.remaining_time = self.rest_duration
-                    self.play_sound(is_work=True, is_complete=False)
+                    self.play_sound(is_work=True, is_all_complete=False)
+            # Rest
             elif self.state == TimerState.Rest:
                 self.remaining_time = max(self.rest_duration - elapsed, 0)
                 if elapsed >= self.rest_duration:
@@ -477,12 +531,12 @@ class WorkoutTimer(QMainWindow):
                         self.state = TimerState.Workout
                         self.start_time = time.monotonic()
                         self.remaining_time = self.workout_duration
-                        self.play_sound(is_work=False, is_complete=False)
+                        self.play_sound(is_work=False, is_all_complete=False)
                     else:
                         self.state = TimerState.Idle
                         self.start_time = None
                         self.current_round = 0
-                        self.play_sound(is_work=False, is_complete=True)
+                        self.play_sound(is_work=False, is_all_complete=True)
                         self.trigger_visual_fanfare()
 
         # GUI updates
@@ -508,19 +562,25 @@ class WorkoutTimer(QMainWindow):
         mins, secs = divmod(self.remaining_time, 60)
         self.time_label.setText(f"Time remaining: {mins:02}:{secs:02}")
 
+        # Initialize colors for progress bar
+        orangeProgress = "#E29A14"
+        greenProgress = "#16A33E"
+        blueProgress = "#1273B5"
+        grayProgress = "#5A5177"
+
         # Progress bar value & color
         if self.state in [TimerState.LeadUp, TimerState.PausedLeadUp]:
             prog = 1.0 - (self.remaining_time / self.lead_up_duration) if self.lead_up_duration else 1.0
-            color = "#FFA500"  # Orange
+            color = orangeProgress  # Orange
         elif self.state in [TimerState.Workout, TimerState.PausedWorkout]:
             prog = 1.0 - (self.remaining_time / self.workout_duration)
-            color = "#3BA458"  # Green
+            color = greenProgress  # Green
         elif self.state in [TimerState.Rest, TimerState.PausedRest]:
             prog = 1.0 - (self.remaining_time / self.rest_duration)
-            color = "#3877A2"  # Blue
+            color = blueProgress  # Blue
         else:
             prog = 0.0
-            color = "#3D3D3D"  # Gray
+            color = grayProgress  # Gray
         self.progress_bar.setValue(int(prog * 100))
         self.progress_bar.setStyleSheet(f"QProgressBar::chunk {{ background-color: {color}; }}")
 
@@ -533,13 +593,13 @@ class WorkoutTimer(QMainWindow):
         # Update Minimalist Widget color
         if self.minimalist_mode and self.minimalist_widget:
             if self.state in [TimerState.LeadUp, TimerState.PausedLeadUp]:
-                self.minimalist_widget.color = QColor("#FFA500")
+                self.minimalist_widget.color = QColor(orangeProgress)
             elif self.state in [TimerState.Workout, TimerState.PausedWorkout]:
-                self.minimalist_widget.color = QColor("#3BA458")
+                self.minimalist_widget.color = QColor(greenProgress)
             elif self.state in [TimerState.Rest, TimerState.PausedRest]:
-                self.minimalist_widget.color = QColor("#3877A2")
+                self.minimalist_widget.color = QColor(blueProgress)
             else:
-                self.minimalist_widget.color = QColor("#3D3D3D")
+                self.minimalist_widget.color = QColor(grayProgress)
             self.minimalist_widget.update()
 
 

@@ -1,12 +1,26 @@
 ---------------- To Do ----------------
+	
+- Fix: Make sure audio works in minimalist mode while video/netflix is playing in fullscreen mode
+
+- Feature: Make toggle for quit/minimize application after all rounds complete
+
+- Feature: Add another dropdown with options for more indicators in minimalist mode 
+	- Time passed in round
+	- Rounds left
+	- Floating progress bar instead of circle
+
+
+
+---------------- Eventual ----------------
+
+- Feature: Save always on top toggle between program instances 
 
 - Fix: get fanfare visuals working
 
 - Fix: allow window min size to be smaller
 
-- Feature: hovering over always on top and minimalist mode toggles gives pop up info
+- Feature: hovering over buttons and toggles gives pop up with more info
 
-- 
 
 
 ---------------- Finished ----------------
@@ -19,7 +33,7 @@
 
 - make pause button
 
-- show different visual icons for work sessions and rest sessions (maybe change something's color from green to blue)
+- show different visual icons for work rounds and rest rounds (maybe change something's color from green to blue)
 
 - UI scaling for some elements
 
@@ -57,3 +71,14 @@ for 3 seconds at the end of all rounds
 - exe version
 
 - Feature: Icon file used in window and file explorer
+
+- Fix: Clicking on groove away from handle just seems to snap to weird intervals
+
+- Feature: Add to minimalist context menu
+	- Start timer option
+	- Pause timer option
+	- Stop timer option
+	- Minimize application to taskbar
+
+- Feature: Setting to change size of minimalist mode circle/interface within minimalist context menu
+
