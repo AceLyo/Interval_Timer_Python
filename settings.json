@@ -1,7 +1,9 @@
 {
-    "workout_duration": 60,
-    "rest_duration": 45,
-    "lead_up_duration": 5,
-    "rounds": 10,
-    "minimalist_mode_size": 80
+    "workout_duration": 6,
+    "rest_duration": 5,
+    "lead_up_duration": 1,
+    "rounds": 2,
+    "minimalist_mode_size": 90,
+    "always_on_top": true,
+    "minimize_after_complete": false
 }

@@ -1,10 +1,8 @@
 ---------------- To Do ----------------
-	
-- Fix: Make sure audio works in minimalist mode while video/netflix is playing in fullscreen mode
 
-- Feature: Make toggle for quit/minimize application after all rounds complete
+- Fix: Make sure audio works from built exe while video/netflix is playing in fullscreen mode
 
-- Feature: Add another dropdown with options for more indicators in minimalist mode 
+- Feature: Add another dropdown with options for more indicators in minimalist mode
 	- Time passed in round
 	- Rounds left
 	- Floating progress bar instead of circle
@@ -13,13 +11,13 @@
 
 ---------------- Eventual ----------------
 
-- Feature: Save always on top toggle between program instances 
-
-- Fix: get fanfare visuals working
-
 - Fix: allow window min size to be smaller
 
 - Feature: hovering over buttons and toggles gives pop up with more info
+
+- Fix: get fanfare visuals working
+
+- Refactor and organize project
 
 
 
@@ -82,3 +80,10 @@ for 3 seconds at the end of all rounds
 
 - Feature: Setting to change size of minimalist mode circle/interface within minimalist context menu
 
+- Feature: Make toggle for minimize application after all rounds complete
+
+- Feature: Save always on top toggle to settings file for continuity
+
+- Feature: Save minimize after completion to settings file for continuity
+
+- 

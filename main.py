@@ -5,6 +5,8 @@ import time
 from enum import Enum
 from dataclasses import dataclass, asdict
 
+os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
+
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QSlider, QProgressBar, QLineEdit, QMenu
@@ -13,6 +15,9 @@ from PyQt5.QtCore import Qt, QTimer, QPoint
 from PyQt5.QtGui import QPixmap, QTransform, QFont, QIntValidator, QPalette, QColor, QPainter, QBrush, QIcon
 
 import pygame
+
+QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
 # ------------------------------
 # Utility Function for Resource Path
@@ -40,12 +45,14 @@ class TimerState(Enum):
 # Settings Persistence (Load/Save)
 # ------------------------------
 @dataclass
-class Settings:
+class Settings: # Default settings for the application
     workout_duration: int = 60   # in seconds
     rest_duration: int = 45      # in seconds
     lead_up_duration: int = 5    # in seconds
-    rounds: int = 10
+    rounds: int = 10 
     minimalist_mode_size: int = 80  # Default size for minimalist mode
+    always_on_top: bool = False 
+    minimize_after_complete: bool = False 
 
     @staticmethod
     def load_from_file(filename: str = "settings.json") -> 'Settings':
@@ -76,7 +83,14 @@ class Settings:
 class MinimalistWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedSize(Settings.minimalist_mode_size, Settings.minimalist_mode_size)
+        self.parent_window = parent  # Reference to the parent window
+        screen_geometry = QApplication.primaryScreen().availableGeometry()
+
+        # Use the size from settings
+        size = min(self.parent_window.settings.minimalist_mode_size, screen_geometry.width(), screen_geometry.height())
+        self.setFixedSize(size, size)
+        self.setMinimumSize(20, 20)
+        self.setMaximumSize(500, 500)  # Adjust as needed
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.color = QColor("#3D3D3D")
@@ -93,9 +107,19 @@ class MinimalistWidget(QWidget):
         self.increase_size_5 = self.size_menu.addAction("Increase Size by 5px")
         self.increase_size_10 = self.size_menu.addAction("Increase Size by 10px")
         self.increase_size_20 = self.size_menu.addAction("Increase Size by 20px")
+        self.increase_size_50 = self.size_menu.addAction("Increase Size by 50px")
+        self.context_menu.setStyleSheet("""
+            QMenu::separator {
+                height: 2px;
+                background: #444;
+                margin: 5px 10px;
+            }
+        """)
+        self.size_menu.addSeparator()
         self.decrease_size_5 = self.size_menu.addAction("Decrease Size by 5px")
         self.decrease_size_10 = self.size_menu.addAction("Decrease Size by 10px")
         self.decrease_size_20 = self.size_menu.addAction("Decrease Size by 20px")
+        self.decrease_size_50 = self.size_menu.addAction("Decrease Size by 50px")
         
         self.minimize_to_taskbar = self.context_menu.addAction("Minimize to Taskbar")
         self.exit_minimalist = self.context_menu.addAction("Exit Minimalist Mode")
@@ -114,9 +138,11 @@ class MinimalistWidget(QWidget):
         self.increase_size_5.triggered.connect(lambda: self.adjust_size(5))
         self.increase_size_10.triggered.connect(lambda: self.adjust_size(10))
         self.increase_size_20.triggered.connect(lambda: self.adjust_size(20))
+        self.increase_size_50.triggered.connect(lambda: self.adjust_size(50))
         self.decrease_size_5.triggered.connect(lambda: self.adjust_size(-5))
         self.decrease_size_10.triggered.connect(lambda: self.adjust_size(-10))
         self.decrease_size_20.triggered.connect(lambda: self.adjust_size(-20))
+        self.decrease_size_50.triggered.connect(lambda: self.adjust_size(-50))
         
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -144,9 +170,10 @@ class MinimalistWidget(QWidget):
                 parent.toggle_minimalist_mode()
 
     def mouseMoveEvent(self, event):
-        delta = QPoint(event.globalPos() - self.old_pos)
-        self.move(self.x() + delta.x(), self.y() + delta.y())
-        self.old_pos = event.globalPos()
+        if event.buttons() == Qt.LeftButton:
+            delta = QPoint(event.globalPos() - self.old_pos)
+            self.move(self.x() + delta.x(), self.y() + delta.y())
+            self.old_pos = event.globalPos()
 
     # Update the context menu actions dynamically
     def update_context_menu(self):
@@ -158,15 +185,44 @@ class MinimalistWidget(QWidget):
 
     # Adjust the size of the widget
     def adjust_size(self, delta):
-        new_size = max(20, self.width() + delta)  # Ensure the size doesn't go below 20px
+        new_size = min(500, max(20, self.width() + delta))  # Ensure size stays between 20-500px
         self.setFixedSize(new_size, new_size)
         self.update()
+
+        # Save the new size to settings
+        self.parent_window.settings.minimalist_mode_size = new_size
+        self.parent_window.settings.save_to_file()
 
     def exit_minimalist_and_minimize(self):
         # Exit minimalist mode
         self.parent().toggle_minimalist_mode()
         # Minimize the application
         self.parent().showMinimized()
+
+    def move_to_safe_position(self):
+        # Get the screen where the widget is currently located
+        current_screen = QApplication.screenAt(self.pos())
+        if current_screen:
+            screen_geometry = current_screen.availableGeometry()
+            screen_dpi = current_screen.logicalDotsPerInch() / 96.0  # Scale factor
+        else:
+            # Fallback to the primary screen if the current screen is not detected
+            screen_geometry = QApplication.primaryScreen().availableGeometry()
+            screen_dpi = QApplication.primaryScreen().logicalDotsPerInch() / 96.0
+
+        # Adjust size based on DPI scaling
+        scaled_width = int(self.width() * screen_dpi)
+        scaled_height = int(self.height() * screen_dpi)
+        try:
+            self.resize(scaled_width, scaled_height)
+            self.move(x, y)
+        except Exception as e:
+            print(f"Error adjusting widget geometry: {e}")
+
+        # Ensure the widget stays within the bounds of the current screen
+        x = max(screen_geometry.left(), min(self.x(), screen_geometry.right() - self.width()))
+        y = max(screen_geometry.top(), min(self.y(), screen_geometry.bottom() - self.height()))
+        self.move(x, y)
 
 # ------------------------------
 # Main Workout Timer Application
@@ -205,6 +261,12 @@ class WorkoutTimer(QMainWindow):
         # Setup the GUI
         self.initUI()
 
+        # Set the initial state of the toggles from settings
+        if self.settings.always_on_top:
+            self.toggle_always_on_top()
+        if self.settings.minimize_after_complete:
+            self.minimize_after_complete_toggle.setChecked(True)
+        
         # Setup a timer to call update_timer() every 100 ms
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_timer)
@@ -324,12 +386,13 @@ class WorkoutTimer(QMainWindow):
         layout.addSpacing(15)
 
         # Create horizontal layout for toggle buttons
-        toggle_layout = QHBoxLayout()
-        toggle_layout.setSpacing(10)
+        button_row1 = QHBoxLayout()
+        button_row1.setSpacing(10)
 
         # Add Always on Top toggle
         self.always_on_top = QPushButton("Always on Top")
         self.always_on_top.setCheckable(True)
+        self.always_on_top.setChecked(self.settings.always_on_top)  # Set initial state
         self.always_on_top.setFont(font_button_small)
         self.always_on_top.setFixedWidth(180)
         self.always_on_top.clicked.connect(self.toggle_always_on_top)
@@ -351,7 +414,39 @@ class WorkoutTimer(QMainWindow):
                 background-color: #366bb8;
             }
         """)
-        toggle_layout.addWidget(self.always_on_top)
+        button_row1.addWidget(self.always_on_top)
+
+        # Add Minimalist Mode toggle
+        self.minimize_after_complete_toggle = QPushButton("Minimize After Complete")
+        self.minimize_after_complete_toggle.setCheckable(True)
+        self.minimize_after_complete_toggle.setFont(font_button_small)
+        self.minimize_after_complete_toggle.setFixedWidth(180)
+        self.minimize_after_complete_toggle.clicked.connect(self.toggle_minimize_after_complete)
+        self.minimize_after_complete_toggle.setStyleSheet("""
+            QPushButton {
+                padding: 5px;
+                border: 2px solid #666;
+                border-radius: 15px;
+                background-color: #444;
+            }
+            QPushButton:checked {
+                background-color: #2a5699;
+                border-color: #1a3b6d;
+            }
+            QPushButton:hover {
+                background-color: #555;
+            }
+            QPushButton:checked:hover {
+                background-color: #366bb8;
+            }
+        """)
+        button_row1.addWidget(self.minimize_after_complete_toggle)
+
+        # Add button_row1 layout to main layout
+        layout.addLayout(button_row1)
+
+        # Add a new horizontal layout
+        button_row2 = QHBoxLayout()
 
         # Add Minimalist Mode toggle
         self.minimalist_button = QPushButton("Minimalist Mode")
@@ -377,10 +472,10 @@ class WorkoutTimer(QMainWindow):
                 background-color: #366bb8;
             }
         """)
-        toggle_layout.addWidget(self.minimalist_button)
+        button_row2.addWidget(self.minimalist_button)
 
-        # Add toggle layout to main layout
-        layout.addLayout(toggle_layout)
+        # Add the button_row2 layout to the main layout
+        layout.addLayout(button_row2)
         
         # Fanfare display
         self.fanfare_label = QLabel()
@@ -480,11 +575,17 @@ class WorkoutTimer(QMainWindow):
         self.fanfare_start_time = time.monotonic()
 
     def toggle_always_on_top(self):
-        if self.always_on_top.isChecked():
+        self.settings.always_on_top = self.always_on_top.isChecked()
+        self.settings.save_to_file()
+        
+        # Update window flags
+        if self.settings.always_on_top:
             self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
         else:
             self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
-        self.show()  # show the window again
+        
+        # Reapply the flags and refresh the window
+        self.show()
 
     def toggle_minimalist_mode(self):
         if not self.minimalist_mode:  # Entering minimalist mode
@@ -501,6 +602,10 @@ class WorkoutTimer(QMainWindow):
                 self.minimalist_widget.hide()
             self.show()
             self.minimalist_button.setChecked(False)
+
+    def toggle_minimize_after_complete(self):
+        self.settings.minimize_after_complete = self.minimize_after_complete_toggle.isChecked()
+        self.settings.save_to_file()
 
     def update_timer(self):
         # Timing logic
@@ -538,6 +643,10 @@ class WorkoutTimer(QMainWindow):
                         self.current_round = 0
                         self.play_sound(is_work=False, is_all_complete=True)
                         self.trigger_visual_fanfare()
+
+                        # Check the toggle minimize
+                        if self.minimize_after_complete_toggle.isChecked():
+                            self.showMinimized()  # Minimize the application
 
         # GUI updates
         self.update_ui_elements()
