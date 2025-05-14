@@ -240,6 +240,9 @@ class WorkoutTimer(QMainWindow):
         self.rest_duration = self.settings.rest_duration
         self.rounds = self.settings.rounds
         self.lead_up_duration = self.settings.lead_up_duration
+        self.minimalist_mode_size = self.settings.minimalist_mode_size
+        self.always_on_top = self.settings.always_on_top
+        self.minimize_after_complete = self.settings.minimize_after_complete
 
         self.current_round = 0
         self.remaining_time = 0
@@ -250,9 +253,9 @@ class WorkoutTimer(QMainWindow):
 
         # Initialize pygame mixer for audio playback
         pygame.mixer.init()
-        self.work_finish_audio = "work_finish.mp3"
-        self.rest_finish_audio = "rest_finish.mp3"
-        self.complete_finish_audio = "complete_finish.mp3"
+        self.work_finish_audio = resource_path("work_finish.mp3")
+        self.rest_finish_audio = resource_path("rest_finish.mp3")
+        self.complete_finish_audio = resource_path("complete_finish.mp3")
 
         # Minimalist mode
         self.minimalist_mode = False
@@ -481,7 +484,7 @@ class WorkoutTimer(QMainWindow):
         self.fanfare_label = QLabel()
         self.fanfare_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.fanfare_label)
-        self.star_pixmap = QPixmap("star.png")
+        self.star_pixmap = QPixmap(resource_path("star.png"))
 
         # Initial UI update
         self.update_ui_elements()

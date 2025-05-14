@@ -1,6 +1,6 @@
 ---------------- To Do ----------------
 
-- Fix: Make sure audio works from built exe while video/netflix is playing in fullscreen mode
+- Refactor and organize project
 
 - Feature: Add another dropdown with options for more indicators in minimalist mode
 	- Time passed in round
@@ -17,7 +17,6 @@
 
 - Fix: get fanfare visuals working
 
-- Refactor and organize project
 
 
 
@@ -86,4 +85,4 @@ for 3 seconds at the end of all rounds
 
 - Feature: Save minimize after completion to settings file for continuity
 
-- 
+- Fix: Make sure audio works from built exe
