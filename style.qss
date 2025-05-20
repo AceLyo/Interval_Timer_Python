@@ -1,6 +1,6 @@
 QMainWindow {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-        stop:0 rgb(14, 32, 48), stop:1 rgb(26, 27, 27));
+        stop:0 rgb(31, 29, 51), stop:1 rgb(26, 27, 27));
 }
 
 QProgressBar {
@@ -12,7 +12,7 @@ QProgressBar {
 
 QLabel {
     color: #ecf0f1;
-    font-family: "Segoe UI";
+    font-family: "Liberation Sans", "Arial";
 }
 
 QPushButton {

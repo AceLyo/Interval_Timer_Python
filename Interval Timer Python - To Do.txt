@@ -1,10 +1,12 @@
 ---------------- To Do ----------------
 
-- Refactor and organize project
+- Test Refactor
 
-- Feature: Add another dropdown with options for more indicators in minimalist mode
-	- Time passed in round
+- Find better font to use
+
+- Feature: Add another dropdown in minimalist mode context menu with customization for more indicators
 	- Rounds left
+	- Time passed in round
 	- Floating progress bar instead of circle
 
 
@@ -86,3 +88,5 @@ for 3 seconds at the end of all rounds
 - Feature: Save minimize after completion to settings file for continuity
 
 - Fix: Make sure audio works from built exe
+
+- Refactor and organize project
