@@ -3,7 +3,7 @@
     "rest_duration": 5,
     "lead_up_duration": 3,
     "rounds": 2,
-    "minimalist_mode_size": 80,
+    "minimalist_mode_size": 360,
     "always_on_top": false,
     "minimize_after_complete": false
 }

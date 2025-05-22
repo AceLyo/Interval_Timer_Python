@@ -12,7 +12,7 @@ QProgressBar {
 
 QLabel {
     color: #ecf0f1;
-    font-family: "Liberation Sans", "Arial";
+    font-family: "Bahnschrift Light", "Liberation Sans", "Arial";
 }
 
 QPushButton {

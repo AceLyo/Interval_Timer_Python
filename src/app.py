@@ -445,7 +445,27 @@ class WorkoutTimer(QMainWindow):
         self.resume_button.setVisible(self.state in (TimerState.PausedLeadUp, TimerState.PausedWorkout, TimerState.PausedRest))
         self.stop_button.setVisible(self.state != TimerState.Idle)
 
-        # minimalist color sync
-        if self.minimalist_mode and self.minimalist_widget:
-            self.minimalist_widget.color = QColor(color)
+        # minimalist color & progress bar sync
+        if self.minimalist_mode and self.minimalist_widget:            
+            if self.state in (TimerState.LeadUp, TimerState.PausedLeadUp):
+                prog = 1 - (self.remaining_time/self.lead_up_duration) if self.lead_up_duration else 1
+                color = orange
+            elif self.state in (TimerState.Workout, TimerState.PausedWorkout):
+                prog = 1 - (self.remaining_time/self.workout_duration)
+                color = green
+            elif self.state in (TimerState.Rest, TimerState.PausedRest):
+                prog = 1 - (self.remaining_time/self.rest_duration)
+                color = blue
+            else:
+                prog = 0
+                color = gray
+
+            # Update minimalist widget properties
+            self.minimalist_widget.progress = prog
+            self.minimalist_widget.active_color = QColor(color)
+            self.minimalist_widget.bg_color = QColor(gray)
+            self.minimalist_widget.current_state = self.state
+            self.minimalist_widget.remaining_time = self.remaining_time
+            self.minimalist_widget.current_round = self.current_round
+            self.minimalist_widget.total_rounds = self.rounds
             self.minimalist_widget.update()

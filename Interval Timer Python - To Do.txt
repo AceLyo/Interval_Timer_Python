@@ -4,11 +4,6 @@
 
 - Find better font to use
 
-- Feature: Add another dropdown in minimalist mode context menu with customization for more indicators
-	- Rounds left
-	- Time passed in round
-	- Floating progress bar instead of circle
-
 
 
 ---------------- Eventual ----------------
@@ -90,3 +85,8 @@ for 3 seconds at the end of all rounds
 - Fix: Make sure audio works from built exe
 
 - Refactor and organize project
+
+- Feature: Add another dropdown in minimalist mode context menu with customization for more indicators
+	- Rounds left
+	- Time passed in round
+	- Floating progress bar instead of circle
