@@ -135,27 +135,20 @@ class MinimalistWidget(QWidget):
             # Draw progress bar background
             painter.setBrush(QBrush(self.bg_color))
             painter.setPen(Qt.NoPen)
-            painter.drawRoundedRect(0, 0, self.width(), self.height(), 10, 10) # 
+            painter.drawRoundedRect(0, 0, self.width(), self.height(), 50, 50)
             
             # Draw progress fill
             if self.progress > 0:
                 progress_width = int(self.width() * self.progress)
                 painter.setBrush(QBrush(self.active_color))
-                painter.drawRoundedRect(0, 0, progress_width, self.height(), 10, 10)
+                painter.drawRoundedRect(0, 0, progress_width, self.height(), 50, 50)
         
         # Draw text if enabled
-        if self.show_round_text or self.show_time_text:
-            text_parts = []
-            
+        if self.show_round_text or self.show_time_text:           
             # Configure text appearance
             painter.setPen(Qt.white)
             font = painter.font()
-            if self.is_circle:
-                font.setPointSize(min(self.width() // 6, 30))
-            else: 
-                font.setPointSize(min(self.width() // 6, 30) - 10)
             painter.setFont(font)
-            
             rect = self.rect()
             
             self.display_round_and_time(painter, rect)
@@ -166,8 +159,8 @@ class MinimalistWidget(QWidget):
         if self.is_circle:
             font_size = min(self.width() // 6, 30)
         else:
-            # For progress bar, use height as the limiting factor
-            font_size = min(self.height() // 2, 30)
+            # For progress bar
+            font_size = min((self.width() // 3) // 4, 30)
         font.setPointSize(font_size)
         painter.setFont(font)
 
