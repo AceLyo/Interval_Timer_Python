@@ -1,53 +1,64 @@
 ---------------- To Do ----------------
 
-- Test Refactor
+- Fix: overlap of text when rounds and time remaining in minimalist progress bar mode
 
-- Find better font to use
+- Feature: Functional button to reset minimalist widget to default pixel size
+
+- Fix: toggling between circle and progress bar makes widget get larger and larger
+
+- Fix: time left above rounds when both are enabled in minimalist mode
+
+- Feature: save minimalist mode toggled
+
+- Feature: save minimalist mode settings
+	- save round display toggle
+	- save time display toggle
+	- save progress bar display toggle
+
+- Feature: hovering over buttons and toggles gives pop up with more info
 
 
 
 ---------------- Eventual ----------------
 
-- Fix: allow window min size to be smaller
+- Feature: Preset settings
 
-- Feature: hovering over buttons and toggles gives pop up with more info
+- Fix: allow window min size to be smaller and UI scales down with it
 
 - Fix: get fanfare visuals working
 
 
-
-
 ---------------- Finished ----------------
 
-- Get audio working in exe so it stops crashing
+- Fix: Get audio working in exe so it stops crashing
 
-- bigger fonts in some areas
+- Fix: bigger fonts in some areas
 
-- make button to start and stop bigger
+- Feature: make button to start and stop bigger
 
-- make pause button
+- Feature: make pause button
 
-- show different visual icons for work rounds and rest rounds (maybe change something's color from green to blue)
+- Feature: show different visual icons for work rounds and rest rounds
 
-- UI scaling for some elements
+- Feature: UI scaling for some elements
 
-- make program window smaller by default (like 600x400)
+- Fix: make program window smaller by default (like 600x400)
 
-- set up potential to use different audio file for rest finish and work finish
+- Feature: set up potential to use different audio file for rest finish and work finish
 
-- scale sliders to window width
+- Feature: scale sliders to window width
 
-- find better audio file to use
+- Fix: find better audio file to use
 
-- Flip audio files for work and rest
+- Fix: Flip audio files for work and rest
 
-- Reset rounds to 1 after all rounds
+- Feature: Reset rounds to 1 after all rounds
 
-- Audio fanfare at the end of all rounds
+- Feature: Audio fanfare at the end of all rounds
 
-- Fix bug: pausing on break will cause it to switch to work or crash on resume
+- Fix: pausing on break will cause it to switch to work or crash on resume
 
-- Fix bug: pausing makes progress bar go to 0%
+- Fix: pausing makes progress bar go to 0%
 
 - Feature: add small lead up to first round start
 
@@ -90,3 +101,9 @@ for 3 seconds at the end of all rounds
 	- Rounds left
 	- Time passed in round
 	- Floating progress bar instead of circle
+
+- Find better font to use
+
+- Test Refactor
+
+- Fix: Sound working in pyinstaller build

@@ -2,8 +2,8 @@ import sys
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QPalette, QColor
 
-from .utils import resource_path
-from .app import WorkoutTimer
+from src.utils import resource_path
+from src.app import WorkoutTimer
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

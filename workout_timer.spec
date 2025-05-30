@@ -5,7 +5,7 @@ import os
 block_cipher = None
 
 a = Analysis(
-    ['main.py'],  # Main Python script
+    ['src/main.py'],  # Main Python script
     pathex=[],  # Additional paths to search for imports
     binaries=[],  # Additional binary files
     datas=[  # Data files to include

@@ -12,49 +12,54 @@ from PyQt5.QtGui import (
 )
 
 from .utils import resource_path
-from .config import Settings
+from .config import Config
 from .timer_state import TimerState
 from .widgets import MinimalistWidget
 
 class WorkoutTimer(QMainWindow):
     def __init__(self):
         super().__init__()
-        # --- Settings & State ---
-        self.settings = Settings.load_from_file()
-        self.workout_duration   = self.settings.workout_duration
-        self.rest_duration      = self.settings.rest_duration
-        self.lead_up_duration   = self.settings.lead_up_duration
-        self.rounds             = self.settings.rounds
-        self.current_round      = 0
-        self.remaining_time     = 0
-        self.state              = TimerState.Idle
-        self.start_time         = None
+        # --- Settings from settings.json ---
+        self.settings = Config.load_from_file()
+        self.minimalist_widget = None
+
+        # --- Timer State ---
+        self.current_round = 0
+        self.remaining_time = 0
+        self.state = TimerState.Idle
+        self.start_time = None
         self.fanfare_start_time = None
-        self.pause_elapsed      = 0
+        self.paused_time = 0 
 
         # --- Audio ---
         pygame.mixer.init()
-        self.work_finish_audio     = "work_finish.mp3"
-        self.rest_finish_audio     = "rest_finish.mp3"
-        self.complete_finish_audio = "complete_finish.mp3"
+        self.work_finish_audio     = resource_path("work_finish.mp3")
+        self.rest_finish_audio     = resource_path("rest_finish.mp3")
+        self.complete_finish_audio = resource_path("complete_finish.mp3")
 
-        # --- Minimalist mode ---
-        self.minimalist_mode        = False
-        self.minimalist_widget      = None
-
-        # --- UI setup ---
+        #####################################
+        # UI Setup
+        #####################################
         self.initUI()
+        self.apply_initial_toggles()
 
-        # apply initial toggles
+        # --- Timer Loop ---
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_timer)
+        self.timer.start(100)
+
+    def apply_initial_toggles(self):
         if self.settings.always_on_top:
             self.toggle_always_on_top()
         if self.settings.minimize_after_complete:
             self.minimize_after_complete_toggle.setChecked(True)
-
-        # timer loop
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.update_timer)
-        self.timer.start(100)
+        if self.settings.minimalist_mode_active:
+            self.minimalist_button.setChecked(True)
+            if not self.minimalist_widget:
+                self.minimalist_widget = MinimalistWidget(self)
+                self.minimalist_widget.move(self.x(), self.y())
+            self.toggle_minimalist_mode()
+            self.hide()
 
     def initUI(self):
         self.setWindowTitle("Workout Timer")
@@ -69,8 +74,8 @@ class WorkoutTimer(QMainWindow):
         # Fonts
         font_heading = QFont(); font_heading.setPointSize(24)
         font_label   = QFont(); font_label.setPointSize(18)
-        font_button  = QFont(); font_button.setPointSize(20)
-        font_small   = QFont(); font_small.setPointSize(9)
+        font_button  = QFont(); font_button.setPointSize(20); font_button.setBold(True)
+        font_toggle   = QFont(); font_toggle.setPointSize(9)
 
         # Heading
         self.heading = QLabel("Workout Interval Timer")
@@ -94,11 +99,12 @@ class WorkoutTimer(QMainWindow):
                 180 if attr=="workout_duration" else
                  90 if attr=="rest_duration" else
                  50 if attr=="rounds" else
-                 10
+                 30 if attr=="lead_up_duration"
+                else 100
             )
             slider.setMinimum(minv)
             slider.setMaximum(maxv)
-            slider.setValue(getattr(self, attr))
+            slider.setValue(getattr(self.settings, attr))
             slider.setPageStep(1)
             slider.setMinimumWidth(240)
             slider.valueChanged.connect(self.slider_changed)
@@ -110,7 +116,7 @@ class WorkoutTimer(QMainWindow):
             """)
             h.addWidget(slider)
 
-            tb = QLineEdit(str(getattr(self, attr)))
+            tb = QLineEdit(str(getattr(self.settings, attr)))
             tb.setFixedWidth(50)
             tb.setValidator(QIntValidator(minv, maxv))
             tb.editingFinished.connect(lambda a=attr, t=tb: self.text_box_changed(a, t))
@@ -146,7 +152,7 @@ class WorkoutTimer(QMainWindow):
         self.always_on_top = QPushButton("Always on Top")
         self.always_on_top.setCheckable(True)
         self.always_on_top.setChecked(self.settings.always_on_top)
-        self.always_on_top.setFont(font_small)
+        self.always_on_top.setFont(font_toggle)
         self.always_on_top.setFixedWidth(180)
         self.always_on_top.clicked.connect(self.toggle_always_on_top)
         self.always_on_top.setStyleSheet("""
@@ -160,7 +166,7 @@ class WorkoutTimer(QMainWindow):
         # Minimize after complete
         self.minimize_after_complete_toggle = QPushButton("Minimize After Complete")
         self.minimize_after_complete_toggle.setCheckable(True)
-        self.minimize_after_complete_toggle.setFont(font_small)
+        self.minimize_after_complete_toggle.setFont(font_toggle)
         self.minimize_after_complete_toggle.setFixedWidth(180)
         self.minimize_after_complete_toggle.clicked.connect(self.toggle_minimize_after_complete)
         self.minimize_after_complete_toggle.setStyleSheet(self.always_on_top.styleSheet())
@@ -172,7 +178,7 @@ class WorkoutTimer(QMainWindow):
         row2 = QHBoxLayout()
         self.minimalist_button = QPushButton("Minimalist Mode")
         self.minimalist_button.setCheckable(True)
-        self.minimalist_button.setFont(font_small)
+        self.minimalist_button.setFont(font_toggle)
         self.minimalist_button.setFixedWidth(180)
         self.minimalist_button.clicked.connect(self.toggle_minimalist_mode)
         self.minimalist_button.setStyleSheet(self.always_on_top.styleSheet())
@@ -182,64 +188,57 @@ class WorkoutTimer(QMainWindow):
 
         # Fanfare
         self.fanfare_label = QLabel(); self.fanfare_label.setAlignment(Qt.AlignCenter); layout.addWidget(self.fanfare_label)
-        self.star_pixmap = QPixmap("star.png")
 
         # Final UI sync
         self.update_ui_elements()
 
-    # --- Event handlers for sliders/textboxes ---
+    #####################################
+    # Event handlers for sliders/textboxes
+    #####################################
     def text_box_changed(self, attr, text_box):
         try:
             val = int(text_box.text())
             getattr(self, f"{attr}_slider").setValue(val)
-            setattr(self, attr, val)
+            setattr(self.settings, attr, val)
             self._save_settings()
         except ValueError:
             pass
 
     def slider_changed(self):
-        self.workout_duration = self.workout_duration_slider.value()
-        self.rest_duration    = self.rest_duration_slider.value()
-        self.rounds           = self.rounds_slider.value()
-        self.lead_up_duration = self.lead_up_duration_slider.value()
+        self.settings.workout_duration = self.workout_duration_slider.value()
+        self.settings.rest_duration    = self.rest_duration_slider.value()
+        self.settings.rounds           = self.rounds_slider.value()
+        self.settings.lead_up_duration = self.lead_up_duration_slider.value()
         self._save_settings()
 
     def _save_settings(self):
-        self.settings = Settings(
-            workout_duration=self.workout_duration,
-            rest_duration=self.rest_duration,
-            lead_up_duration=self.lead_up_duration,
-            rounds=self.rounds,
-            minimalist_mode_size=self.settings.minimalist_mode_size,
-            always_on_top=self.settings.always_on_top,
-            minimize_after_complete=self.settings.minimize_after_complete
-        )
         self.settings.save_to_file()
 
-    # --- Timer controls ---
+    #####################################
+    # Timer controls 
+    #####################################
     def start_timer(self):
         self.current_round = 0
-        if self.lead_up_duration > 0:
+        if self.settings.lead_up_duration > 0:
             self.state = TimerState.LeadUp
-            self.remaining_time = self.lead_up_duration
+            self.remaining_time = self.settings.lead_up_duration
         else:
             self.state = TimerState.Workout
-            self.remaining_time = self.workout_duration
-        self.start_time    = time.monotonic()
-        self.pause_elapsed = 0
+            self.remaining_time = self.settings.workout_duration
+        self.start_time = time.monotonic()
+        self.paused_time = 0
         self.update_ui_elements()
 
     def pause_timer(self):
         if self.start_time is None:
             return
-        elapsed = time.monotonic() - self.start_time
+        self.paused_time = time.monotonic() - self.start_time
         if self.state == TimerState.LeadUp:
             self.state = TimerState.PausedLeadUp
         elif self.state == TimerState.Workout:
             self.state = TimerState.PausedWorkout
         elif self.state == TimerState.Rest:
             self.state = TimerState.PausedRest
-        self.paused_time_left = self.remaining_time
         self.start_time = None
         self.update_ui_elements()
 
@@ -251,17 +250,14 @@ class WorkoutTimer(QMainWindow):
         ):
             return
         if self.state == TimerState.PausedLeadUp:
-            self.remaining_time = max(self.lead_up_duration - int(self.pause_elapsed), 0)
             self.state = TimerState.LeadUp
         elif self.state == TimerState.PausedWorkout:
-            self.remaining_time = max(self.workout_duration - int(self.pause_elapsed), 0)
             self.state = TimerState.Workout
         else:
-            self.remaining_time = max(self.rest_duration - int(self.pause_elapsed), 0)
             self.state = TimerState.Rest
 
-        self.start_time = time.monotonic() - self.pause_elapsed
-        self.pause_elapsed = 0
+        self.start_time = time.monotonic() - self.paused_time
+        self.paused_time = 0
         self.update_ui_elements()
 
     def stop_timer(self):
@@ -287,7 +283,9 @@ class WorkoutTimer(QMainWindow):
     def trigger_visual_fanfare(self):
         self.fanfare_start_time = time.monotonic()
 
-    # --- Toggles ---
+    #####################################
+    # Main Menu Toggle methods 
+    #####################################
     def toggle_always_on_top(self):
         self.settings.always_on_top = self.always_on_top.isChecked()
         self.settings.save_to_file()
@@ -302,8 +300,10 @@ class WorkoutTimer(QMainWindow):
         self.settings.save_to_file()
 
     def toggle_minimalist_mode(self):
-        if not self.minimalist_mode:
-            self.minimalist_mode = True
+        new_value = not self.settings.minimalist_mode_active
+        self.settings.minimalist_mode_active = new_value
+        self.settings.save_to_file()
+        if new_value:
             if not self.minimalist_widget:
                 self.minimalist_widget = MinimalistWidget(self)
                 self.minimalist_widget.move(self.x(), self.y())
@@ -311,83 +311,44 @@ class WorkoutTimer(QMainWindow):
             self.hide()
             self.minimalist_button.setChecked(True)
         else:
-            self.minimalist_mode = False
             if self.minimalist_widget:
                 self.minimalist_widget.hide()
             self.show()
             self.minimalist_button.setChecked(False)
 
-    def toggle_round_display(self):
-        # Get the current round number and total number of rounds
-        current_round = self.current_round
-        total_rounds = self.rounds
-        
-        # Calculate the number of rounds left
-        rounds_left = total_rounds - current_round
-        
-        # Display the number of rounds left in the minimalist mode widget
-        if not hasattr(self, 'rounds_left_label'):
-            self.rounds_left_label = QLabel()
-            self.layout().addWidget(self.rounds_left_label)
-        self.rounds_left_label.setText(f"{rounds_left}")
-
-    def toggle_time_display(self):
-        # Get the current time remaining
-        current_time = self.remaining_time
-        
-        # Convert the time remaining to minutes and seconds
-        mins, secs = divmod(current_time, 60)
-        
-        # Display the time remaining in the minimalist mode widget
-        self.time_remaining_label = QLabel(f"{mins:02}:{secs:02}")
-        self.layout().addWidget(self.time_remaining_label)
-
-    # will toggle between the default circle shape of minimalist mode and a floating progress bar
-    def toggle_shape(self):
-        # Get the current shape of the minimalist mode widget
-        if self.minimalist_widget.shape == "circle":
-            # Change to floating progress bar
-            self.minimalist_widget.shape = "floating_progress_bar"
-            self.minimalist_widget.setStyleSheet("background-color: transparent;")
-        else:
-            # Change back to circle shape
-            self.minimalist_widget.shape = "circle"
-            self.minimalist_widget.setStyleSheet("background-color: transparent;")
-
-        # Update the minimalist mode widget
-        self.minimalist_widget.update()
-
-    # --- Main timer loop & UI refresh ---
+    ############################################
+    # Main timer loop
+    ############################################
     def update_timer(self):
         if self.start_time is not None:
             elapsed = int(time.monotonic() - self.start_time)
             # Lead-up
             if self.state == TimerState.LeadUp:
-                self.remaining_time = max(self.lead_up_duration - elapsed, 0)
-                if elapsed >= self.lead_up_duration:
+                self.remaining_time = max(self.settings.lead_up_duration - elapsed, 0)
+                if elapsed >= self.settings.lead_up_duration:
                     self.state = TimerState.Workout
                     self.start_time = time.monotonic()
-                    self.remaining_time = self.workout_duration
+                    self.remaining_time = self.settings.workout_duration
                     self.play_sound(is_work=False, is_all_complete=False)
 
             # Workout
             elif self.state == TimerState.Workout:
-                self.remaining_time = max(self.workout_duration - elapsed, 0)
-                if elapsed >= self.workout_duration:
+                self.remaining_time = max(self.settings.workout_duration - elapsed, 0)
+                if elapsed >= self.settings.workout_duration:
                     self.state = TimerState.Rest
                     self.start_time = time.monotonic()
-                    self.remaining_time = self.rest_duration
+                    self.remaining_time = self.settings.rest_duration
                     self.play_sound(is_work=True, is_all_complete=False)
 
             # Rest
             elif self.state == TimerState.Rest:
-                self.remaining_time = max(self.rest_duration - elapsed, 0)
-                if elapsed >= self.rest_duration:
-                    if self.current_round + 1 < self.rounds:
+                self.remaining_time = max(self.settings.rest_duration - elapsed, 0)
+                if elapsed >= self.settings.rest_duration:
+                    if self.current_round + 1 < self.settings.rounds:
                         self.current_round += 1
                         self.state = TimerState.Workout
                         self.start_time = time.monotonic()
-                        self.remaining_time = self.workout_duration
+                        self.remaining_time = self.settings.workout_duration
                         self.play_sound(is_work=False, is_all_complete=False)
                     else:
                         self.state = TimerState.Idle
@@ -403,20 +364,20 @@ class WorkoutTimer(QMainWindow):
 
         # visual fanfare
         if self.fanfare_start_time:
-            elapsed_fan = time.monotonic() - self.fanfare_start_time
-            if elapsed_fan < 2.0:
-                angle = elapsed_fan * 360
-                transform = QTransform().rotate(angle)
-                rotated = self.star_pixmap.transformed(transform, Qt.SmoothTransformation)
-                self.fanfare_label.setPixmap(rotated)
-                self.fanfare_label.setText(f"Congratulations, you completed {self.rounds} rounds!")
+            elapsed_fanfare_time = time.monotonic() - self.fanfare_start_time
+            if elapsed_fanfare_time < 2.0:
+                self.fanfare_label.setText(f"Congratulations, you completed {self.settings.rounds} rounds!")
             else:
                 self.fanfare_start_time = None
                 self.fanfare_label.clear()
+    
 
+    #####################################
+    # Update UI Elements
+    #####################################
     def update_ui_elements(self):
         # labels
-        self.round_label.setText(f"Round: {self.current_round+1}/{self.rounds}")
+        self.round_label.setText(f"Round: {self.current_round+1}/{self.settings.rounds}")
         self.state_label.setText(f"State: {self.state.name}")
         mins, secs = divmod(self.remaining_time, 60)
         self.time_label.setText(f"Time remaining: {mins:02}:{secs:02}")
@@ -424,13 +385,13 @@ class WorkoutTimer(QMainWindow):
         # progress styling
         orange, green, blue, gray = "#E29A14", "#16A33E", "#1273B5", "#5A5177"
         if self.state in (TimerState.LeadUp, TimerState.PausedLeadUp):
-            prog = 1 - (self.remaining_time/self.lead_up_duration) if self.lead_up_duration else 1
+            prog = 1 - (self.remaining_time/self.settings.lead_up_duration) if self.settings.lead_up_duration else 1
             color = orange
         elif self.state in (TimerState.Workout, TimerState.PausedWorkout):
-            prog = 1 - (self.remaining_time/self.workout_duration)
+            prog = 1 - (self.remaining_time/self.settings.workout_duration)
             color = green
         elif self.state in (TimerState.Rest, TimerState.PausedRest):
-            prog = 1 - (self.remaining_time/self.rest_duration)
+            prog = 1 - (self.remaining_time/self.settings.rest_duration)
             color = blue
         else:
             prog = 0
@@ -446,15 +407,15 @@ class WorkoutTimer(QMainWindow):
         self.stop_button.setVisible(self.state != TimerState.Idle)
 
         # minimalist color & progress bar sync
-        if self.minimalist_mode and self.minimalist_widget:            
+        if self.settings.minimalist_mode_active and self.minimalist_widget:            
             if self.state in (TimerState.LeadUp, TimerState.PausedLeadUp):
-                prog = 1 - (self.remaining_time/self.lead_up_duration) if self.lead_up_duration else 1
+                prog = 1 - (self.remaining_time/self.settings.lead_up_duration) if self.settings.lead_up_duration else 1
                 color = orange
             elif self.state in (TimerState.Workout, TimerState.PausedWorkout):
-                prog = 1 - (self.remaining_time/self.workout_duration)
+                prog = 1 - (self.remaining_time/self.settings.workout_duration)
                 color = green
             elif self.state in (TimerState.Rest, TimerState.PausedRest):
-                prog = 1 - (self.remaining_time/self.rest_duration)
+                prog = 1 - (self.remaining_time/self.settings.rest_duration)
                 color = blue
             else:
                 prog = 0
@@ -467,5 +428,5 @@ class WorkoutTimer(QMainWindow):
             self.minimalist_widget.current_state = self.state
             self.minimalist_widget.remaining_time = self.remaining_time
             self.minimalist_widget.current_round = self.current_round
-            self.minimalist_widget.total_rounds = self.rounds
+            self.minimalist_widget.total_rounds = self.settings.rounds
             self.minimalist_widget.update()

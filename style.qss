@@ -20,6 +20,7 @@ QPushButton {
     color: #ecf0f1;
     border-radius: 8px;
     padding: 8px;
+    font-family: "Bahnschrift Light", "Liberation Sans", "Arial";
 }
 QPushButton:hover {
     background-color: rgb(78, 130, 207);
