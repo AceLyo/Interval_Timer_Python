@@ -1,6 +1,6 @@
 ---------------- To Do ----------------
 
-- Fix: overlap of text when rounds and time remaining in minimalist progress bar mode
+- Fix: Text being cropped a bit in progress bar mode
 
 - Feature: Functional button to reset minimalist widget to default pixel size
 
@@ -9,11 +9,6 @@
 - Fix: time left above rounds when both are enabled in minimalist mode
 
 - Feature: save minimalist mode toggled
-
-- Feature: save minimalist mode settings
-	- save round display toggle
-	- save time display toggle
-	- save progress bar display toggle
 
 - Feature: hovering over buttons and toggles gives pop up with more info
 
@@ -107,3 +102,10 @@ for 3 seconds at the end of all rounds
 - Test Refactor
 
 - Fix: Sound working in pyinstaller build
+
+- Fix: overlap of text when rounds and time remaining in minimalist progress bar mode
+
+- Feature: save minimalist mode settings
+	- save round display toggle
+	- save time display toggle
+	- save progress bar display toggle

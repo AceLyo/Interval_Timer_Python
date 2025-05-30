@@ -14,7 +14,7 @@ class MinimalistWidget(QWidget):
 
         # Set up a layout for the widget
         self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)  # Optional: Remove margins
+        self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
 
         # compute size
@@ -41,7 +41,7 @@ class MinimalistWidget(QWidget):
         self.color = QColor(grey)
         # Add progress bar colors
         self.progress_bg_color = QColor(grey)
-        self.progress_fill_color = QColor("#FFA500")  # Orange color for progress
+        self.progress_fill_color = QColor("#FFA500")
 
         # Add these properties
         self.progress = 0
