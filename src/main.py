@@ -4,6 +4,7 @@ from PyQt5.QtGui import QPalette, QColor
 
 from src.utils import resource_path
 from src.app import WorkoutTimer
+from src.config import Config
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -26,6 +27,8 @@ if __name__ == "__main__":
     with open(style_file, "r") as f:
         app.setStyleSheet(f.read())
 
+    # Initialize the main window
     window = WorkoutTimer()
-    window.show()
+    if not window.settings.minimalist_mode_active:
+        window.show()
     sys.exit(app.exec_())

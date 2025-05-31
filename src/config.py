@@ -11,7 +11,7 @@ class Config:
     rest_duration: int = 45
     lead_up_duration: int = 5
     rounds: int = 10
-    minimalist_mode_size: int = 80
+    minimalist_mode_size: int = 120
     always_on_top: bool = False
     minimize_after_complete: bool = False
     minimalist_mode_active: bool = False

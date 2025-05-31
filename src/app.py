@@ -18,6 +18,7 @@ from .widgets import MinimalistWidget
 
 class WorkoutTimer(QMainWindow):
     def __init__(self):
+        """Initialize the Workout Timer application."""
         super().__init__()
         # --- Settings from settings.json ---
         self.settings = Config.load_from_file()
@@ -41,25 +42,11 @@ class WorkoutTimer(QMainWindow):
         # UI Setup
         #####################################
         self.initUI()
-        self.apply_initial_toggles()
 
         # --- Timer Loop ---
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_timer)
         self.timer.start(100)
-
-    def apply_initial_toggles(self):
-        if self.settings.always_on_top:
-            self.toggle_always_on_top()
-        if self.settings.minimize_after_complete:
-            self.minimize_after_complete_toggle.setChecked(True)
-        if self.settings.minimalist_mode_active:
-            self.minimalist_button.setChecked(True)
-            if not self.minimalist_widget:
-                self.minimalist_widget = MinimalistWidget(self)
-                self.minimalist_widget.move(self.x(), self.y())
-            self.toggle_minimalist_mode()
-            self.hide()
 
     def initUI(self):
         self.setWindowTitle("Workout Timer")
@@ -190,7 +177,38 @@ class WorkoutTimer(QMainWindow):
         self.fanfare_label = QLabel(); self.fanfare_label.setAlignment(Qt.AlignCenter); layout.addWidget(self.fanfare_label)
 
         # Final UI sync
+        self.apply_initial_toggles()
         self.update_ui_elements()
+
+    ###############################################
+    # For intializing toggles from settings.json
+    ###############################################
+    def apply_initial_toggles(self):
+        """Apply initial toggles from settings.json"""
+        if self.settings.always_on_top:
+            self.always_on_top.setChecked(True)
+        if self.settings.minimize_after_complete:
+            self.minimize_after_complete_toggle.setChecked(True)
+        if self.settings.minimalist_mode_active:
+            # Defer minimalist mode activation until after event loop starts
+            QTimer.singleShot(0, lambda: self.set_minimalist_mode(True))
+
+    def set_minimalist_mode(self, enable: bool):
+        """Show or hide minimalist mode and sync state/settings/UI."""
+        self.settings.minimalist_mode_active = enable
+        self.settings.save_to_file()
+        if enable:
+            if not self.minimalist_widget:
+                self.minimalist_widget = MinimalistWidget(self)
+                self.minimalist_widget.move(self.x(), self.y())
+            self.minimalist_widget.show()
+            self.hide()
+            self.minimalist_button.setChecked(True)
+        else:
+            if self.minimalist_widget:
+                self.minimalist_widget.hide()
+            self.show()
+            self.minimalist_button.setChecked(False)
 
     #####################################
     # Event handlers for sliders/textboxes
@@ -301,20 +319,7 @@ class WorkoutTimer(QMainWindow):
 
     def toggle_minimalist_mode(self):
         new_value = not self.settings.minimalist_mode_active
-        self.settings.minimalist_mode_active = new_value
-        self.settings.save_to_file()
-        if new_value:
-            if not self.minimalist_widget:
-                self.minimalist_widget = MinimalistWidget(self)
-                self.minimalist_widget.move(self.x(), self.y())
-            self.minimalist_widget.show()
-            self.hide()
-            self.minimalist_button.setChecked(True)
-        else:
-            if self.minimalist_widget:
-                self.minimalist_widget.hide()
-            self.show()
-            self.minimalist_button.setChecked(False)
+        self.set_minimalist_mode(new_value)
 
     ############################################
     # Main timer loop

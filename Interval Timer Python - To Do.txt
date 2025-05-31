@@ -1,26 +1,17 @@
 ---------------- To Do ----------------
 
-- Feature: save minimalist mode
+- Feature: Preset settings
 
-- Feature: Functional button to reset minimalist widget to default pixel size
-
-- Fix: toggling between circle and progress bar makes widget get larger and larger
-
+- Feature: hovering over buttons and toggles gives pop up with more info
 
 
 
 ---------------- Eventual ----------------
 
-- Feature: Preset settings
-
-- Feature: hovering over buttons and toggles gives pop up with more info
-
 - Fix: allow window min size to be smaller and UI scales down with it
 
-- Fix: get fanfare visuals working
 
-- Fix: Holding right click to open context menu, then moving mouse and releasing on
-menu item causes it to be selected, rather than needing to be clicked again
+
 
 
 ---------------- Finished ----------------
@@ -113,3 +104,18 @@ for 3 seconds at the end of all rounds
 - Fix: time left above rounds when both are enabled in minimalist mode
 
 - Fix: Text being cropped a bit in progress bar mode
+
+- Feature: Functional button to reset minimalist widget to default pixel size
+
+- Feature: save minimalist mode toggle to config
+
+- Feature: able to start in minimalist mode
+
+- Fix: Flashing of main window when starting from minimalist mode
+
+- Fix: Holding right click to open context menu, then moving mouse and releasing on
+menu item causes it to be selected, rather than needing to be clicked again
+
+- Feature: dynamic floating progress bar roundedness
+
+- Fix: toggling between circle and progress bar makes widget get larger and larger

@@ -19,9 +19,8 @@ class MinimalistWidget(QWidget):
 
         # compute size
         screen_geometry = QApplication.primaryScreen().availableGeometry()
-        size = min(self.parent_window.settings.minimalist_mode_size,
-                   screen_geometry.width(), screen_geometry.height())
-        self.setFixedSize(size, size)
+        self.base_size = min(self.parent_window.settings.minimalist_mode_size,
+                             screen_geometry.width(), screen_geometry.height())
         self.setMinimumSize(20, 20)
         self.setMaximumSize(500, 500)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
@@ -33,8 +32,10 @@ class MinimalistWidget(QWidget):
         self.is_circle = not self.settings.minimalist_progressbar_active
 
         # Apply saved shape
-        if not self.is_circle:
-            self.setFixedSize(size * 2, size // 2)
+        if self.is_circle:
+            self.setFixedSize(self.base_size, self.base_size)
+        else:
+            self.setFixedSize(self.base_size * 2, self.base_size // 2)
 
         # default circle color
         grey = "#3D3D3D"
@@ -135,13 +136,14 @@ class MinimalistWidget(QWidget):
             # Draw progress bar background
             painter.setBrush(QBrush(self.bg_color))
             painter.setPen(Qt.NoPen)
-            painter.drawRoundedRect(0, 0, self.width(), self.height(), 50, 50)
+            radius = int(self.height() / 1.8)  # Dynamic roundedness
+            painter.drawRoundedRect(0, 0, self.width(), self.height(), radius, radius)
             
             # Draw progress fill
             if self.progress > 0:
                 progress_width = int(self.width() * self.progress)
                 painter.setBrush(QBrush(self.active_color))
-                painter.drawRoundedRect(0, 0, progress_width, self.height(), 50, 50)
+                painter.drawRoundedRect(0, 0, progress_width, self.height(), radius, radius)
         
         # Draw text if enabled
         if self.show_round_text or self.show_time_text:           
@@ -197,9 +199,14 @@ class MinimalistWidget(QWidget):
     ###############################
     # Mouse event handlers
     ###############################
-
     def mousePressEvent(self, event):
-        if event.button() == Qt.RightButton:
+        if event.button() == Qt.LeftButton:
+            self.old_pos = event.globalPos()
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        # Handle right-click on release for context menu
+        if event.button() == Qt.MouseButton.RightButton:
             self.update_context_menu()
             self.context_menu.exec_(self.mapToGlobal(event.pos()))
         else:
@@ -230,15 +237,17 @@ class MinimalistWidget(QWidget):
         self.stop_timer.setVisible(st not in (TimerState.Idle, TimerState.PausedLeadUp, TimerState.PausedWorkout, TimerState.PausedRest))
 
     def adjust_size(self, delta: int):
+        # Always adjust base_size, and use it for both shapes
         if self.is_circle:
-            new_size = min(500, max(20, self.width() + delta))
-            self.setFixedSize(new_size, new_size)
+            new_base = min(500, max(20, self.base_size + delta))
+            self.base_size = new_base
+            self.setFixedSize(self.base_size, self.base_size)
         else:
-            new_width = min(1000, max(100, self.width() + delta))
-            new_height = new_width // 4
-            self.setFixedSize(new_width, new_height)
+            new_base = min(500, max(20, self.base_size + delta))
+            self.base_size = new_base
+            self.setFixedSize(self.base_size * 2, self.base_size // 2)
         self.update()
-        self.parent_window.settings.minimalist_mode_size = self.width()
+        self.parent_window.settings.minimalist_mode_size = self.base_size
         self.parent_window.settings.save_to_file()
 
     def exit_minimalist_and_minimize(self):
@@ -263,17 +272,19 @@ class MinimalistWidget(QWidget):
         self.parent_window.settings.minimalist_progressbar_active = not self.is_circle
         self.parent_window.settings.save_to_file()
         if self.is_circle:
-            # Make it square for circle
-            size = self.width()
-            self.setFixedSize(size, size)
+            # Always use base_size for circle
+            self.setFixedSize(self.base_size, self.base_size)
         else:
-            # Make it wider for progress bar
-            self.setFixedSize(self.width() * 2, self.height() // 2)
+            # Always use base_size for progress bar
+            self.setFixedSize(self.base_size * 2, self.base_size // 2)
         self.update()
 
     def reset_to_default_size(self):
-        self.setFixedSize(self.parent_window.settings.minimalist_mode_size,
-                          self.parent_window.settings.minimalist_mode_size)
+        self.base_size = Config.minimalist_mode_size
+        if self.is_circle:
+            self.setFixedSize(self.base_size, self.base_size)
+        else:
+            self.setFixedSize(self.base_size * 2, self.base_size // 2)
         self.update()
-        self.parent_window.settings.minimalist_mode_size = self.width()
+        self.parent_window.settings.minimalist_mode_size = self.base_size
         self.parent_window.settings.save_to_file()
