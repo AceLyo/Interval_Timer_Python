@@ -3,18 +3,18 @@ import pygame
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QSlider, QProgressBar,
-    QLineEdit
+    QLineEdit, QToolTip
 )
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import (
-    QPixmap, QTransform, QFont, QIntValidator,
-    QColor, QIcon
+    QFont, QIntValidator, QColor, QIcon
 )
-
 from .utils import resource_path
 from .config import Config
 from .timer_state import TimerState
 from .widgets import MinimalistWidget
+
+QToolTip.showTime = 5000  # Set tooltip display time to 5 seconds
 
 class WorkoutTimer(QMainWindow):
     def __init__(self):
@@ -37,6 +37,7 @@ class WorkoutTimer(QMainWindow):
         self.work_finish_audio     = resource_path("work_finish.mp3")
         self.rest_finish_audio     = resource_path("rest_finish.mp3")
         self.complete_finish_audio = resource_path("complete_finish.mp3")
+
 
         #####################################
         # UI Setup
@@ -115,10 +116,23 @@ class WorkoutTimer(QMainWindow):
 
         # Control Buttons
         btn_row = QHBoxLayout(); btn_row.setSpacing(10)
-        self.start_button  = QPushButton("Start");  self.start_button.setFont(font_button);  self.start_button.clicked.connect(self.start_timer);  btn_row.addWidget(self.start_button)
-        self.pause_button  = QPushButton("Pause");  self.pause_button.setFont(font_button);  self.pause_button.clicked.connect(self.pause_timer);  btn_row.addWidget(self.pause_button)
-        self.resume_button = QPushButton("Resume"); self.resume_button.setFont(font_button); self.resume_button.clicked.connect(self.resume_timer); btn_row.addWidget(self.resume_button)
-        self.stop_button   = QPushButton("Stop");   self.stop_button.setFont(font_button);   self.stop_button.clicked.connect(self.stop_timer);   btn_row.addWidget(self.stop_button)
+        # Start button
+        self.start_button  = QPushButton("Start");  self.start_button.setFont(font_button);  
+        self.start_button.clicked.connect(self.start_timer);  btn_row.addWidget(self.start_button)
+        self.start_button.setToolTip("Start the timer with current settings")
+        # Pause button
+        self.pause_button  = QPushButton("Pause");  self.pause_button.setFont(font_button);  
+        self.pause_button.clicked.connect(self.pause_timer);  btn_row.addWidget(self.pause_button)
+        self.pause_button.setToolTip("Pause the timer")
+        # Resume button
+        self.resume_button = QPushButton("Resume"); self.resume_button.setFont(font_button); 
+        self.resume_button.clicked.connect(self.resume_timer); btn_row.addWidget(self.resume_button)
+        self.resume_button.setToolTip("Resume the timer from a paused state")
+        # Stop button
+        self.stop_button   = QPushButton("Stop");   self.stop_button.setFont(font_button); 
+        self.stop_button.clicked.connect(self.stop_timer);   btn_row.addWidget(self.stop_button)
+        self.stop_button.setToolTip("Stop the timer and reset all states")
+        # Add buttons to layout
         layout.addLayout(btn_row)
 
         # Status Labels & ProgressBar
@@ -142,6 +156,7 @@ class WorkoutTimer(QMainWindow):
         self.always_on_top.setFont(font_toggle)
         self.always_on_top.setFixedWidth(180)
         self.always_on_top.clicked.connect(self.toggle_always_on_top)
+        self.always_on_top.setToolTip("Keep the timer window always on top of other windows")
         self.always_on_top.setStyleSheet("""
             QPushButton { padding:5px; border:2px solid #666; border-radius:15px; background-color:#444; }
             QPushButton:checked { background-color:#2a5699; border-color:#1a3b6d; }
@@ -156,6 +171,7 @@ class WorkoutTimer(QMainWindow):
         self.minimize_after_complete_toggle.setFont(font_toggle)
         self.minimize_after_complete_toggle.setFixedWidth(180)
         self.minimize_after_complete_toggle.clicked.connect(self.toggle_minimize_after_complete)
+        self.minimize_after_complete_toggle.setToolTip("Minimize the timer window after completing all rounds")
         self.minimize_after_complete_toggle.setStyleSheet(self.always_on_top.styleSheet())
         row1.addWidget(self.minimize_after_complete_toggle)
 
@@ -168,6 +184,8 @@ class WorkoutTimer(QMainWindow):
         self.minimalist_button.setFont(font_toggle)
         self.minimalist_button.setFixedWidth(180)
         self.minimalist_button.clicked.connect(self.toggle_minimalist_mode)
+        self.minimalist_button.setToolTip("Switch to minimalist mode for a smaller and cleaner interface"
+        " (cannot set sliders/textboxes in this mode)")
         self.minimalist_button.setStyleSheet(self.always_on_top.styleSheet())
         row2.addWidget(self.minimalist_button)
 
@@ -179,6 +197,7 @@ class WorkoutTimer(QMainWindow):
         # Final UI sync
         self.apply_initial_toggles()
         self.update_ui_elements()
+
 
     ###############################################
     # For intializing toggles from settings.json
@@ -210,10 +229,12 @@ class WorkoutTimer(QMainWindow):
             self.show()
             self.minimalist_button.setChecked(False)
 
+
     #####################################
     # Event handlers for sliders/textboxes
     #####################################
     def text_box_changed(self, attr, text_box):
+        """Update the slider and settings based on text box input."""
         try:
             val = int(text_box.text())
             getattr(self, f"{attr}_slider").setValue(val)
@@ -223,6 +244,7 @@ class WorkoutTimer(QMainWindow):
             pass
 
     def slider_changed(self):
+        """Update the settings based on slider values."""
         self.settings.workout_duration = self.workout_duration_slider.value()
         self.settings.rest_duration    = self.rest_duration_slider.value()
         self.settings.rounds           = self.rounds_slider.value()
@@ -230,12 +252,15 @@ class WorkoutTimer(QMainWindow):
         self._save_settings()
 
     def _save_settings(self):
+        """Save the current settings to the settings.json file."""
         self.settings.save_to_file()
+
 
     #####################################
     # Timer controls 
     #####################################
     def start_timer(self):
+        """Start the timer with initial settings."""
         self.current_round = 0
         if self.settings.lead_up_duration > 0:
             self.state = TimerState.LeadUp
@@ -248,6 +273,7 @@ class WorkoutTimer(QMainWindow):
         self.update_ui_elements()
 
     def pause_timer(self):
+        """Pause the timer and save the elapsed time."""
         if self.start_time is None:
             return
         self.paused_time = time.monotonic() - self.start_time
@@ -261,6 +287,7 @@ class WorkoutTimer(QMainWindow):
         self.update_ui_elements()
 
     def resume_timer(self):
+        """Resume the timer from a paused state."""
         if self.state not in (
             TimerState.PausedLeadUp,
             TimerState.PausedWorkout,
@@ -279,6 +306,7 @@ class WorkoutTimer(QMainWindow):
         self.update_ui_elements()
 
     def stop_timer(self):
+        """Stop the timer and reset all states."""
         self.state = TimerState.Idle
         self.start_time = None
         self.remaining_time = 0
@@ -286,6 +314,7 @@ class WorkoutTimer(QMainWindow):
         self.update_ui_elements()
 
     def play_sound(self, is_work: bool, is_all_complete: bool):
+        """Play the appropriate sound based on the timer state."""
         try:
             if is_all_complete:
                 audio_file = self.complete_finish_audio
@@ -301,10 +330,12 @@ class WorkoutTimer(QMainWindow):
     def trigger_visual_fanfare(self):
         self.fanfare_start_time = time.monotonic()
 
+
     #####################################
     # Main Menu Toggle methods 
     #####################################
     def toggle_always_on_top(self):
+        """Toggle the 'Always on Top' setting."""
         self.settings.always_on_top = self.always_on_top.isChecked()
         self.settings.save_to_file()
         if self.settings.always_on_top:
@@ -314,17 +345,21 @@ class WorkoutTimer(QMainWindow):
         self.show()
 
     def toggle_minimize_after_complete(self):
+        """Toggle the 'Minimize After Complete' setting."""
         self.settings.minimize_after_complete = self.minimize_after_complete_toggle.isChecked()
         self.settings.save_to_file()
 
     def toggle_minimalist_mode(self):
+        """Toggle the 'Minimalist Mode' setting."""
         new_value = not self.settings.minimalist_mode_active
         self.set_minimalist_mode(new_value)
+
 
     ############################################
     # Main timer loop
     ############################################
     def update_timer(self):
+        """Main timer loop that updates the timer state and UI."""
         if self.start_time is not None:
             elapsed = int(time.monotonic() - self.start_time)
             # Lead-up
@@ -381,6 +416,7 @@ class WorkoutTimer(QMainWindow):
     # Update UI Elements
     #####################################
     def update_ui_elements(self):
+        """Update all UI elements based on the current state."""
         # labels
         self.round_label.setText(f"Round: {self.current_round+1}/{self.settings.rounds}")
         self.state_label.setText(f"State: {self.state.name}")

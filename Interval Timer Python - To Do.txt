@@ -1,14 +1,17 @@
 ---------------- To Do ----------------
 
 - Feature: Preset settings
+	- Button to access presets at top (3 lines dropdown)
+	- 3 buttons to save preset in dropdown
+	- 3 slots for possible saves
 
-- Feature: hovering over buttons and toggles gives pop up with more info
+- Fix: allow window min size to be smaller and UI scales down with it
 
 
 
 ---------------- Eventual ----------------
 
-- Fix: allow window min size to be smaller and UI scales down with it
+
 
 
 
@@ -119,3 +122,7 @@ menu item causes it to be selected, rather than needing to be clicked again
 - Feature: dynamic floating progress bar roundedness
 
 - Fix: toggling between circle and progress bar makes widget get larger and larger
+
+- Feature: hovering over buttons and toggles gives tooltip pop up with more info
+
+- Feature: tooltips disappear after a certain amount of time
