@@ -3,7 +3,7 @@ import pygame
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QSlider, QProgressBar,
-    QLineEdit, QToolTip
+    QLineEdit, QToolTip, QMenu, QAction, QSizePolicy
 )
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import (
@@ -52,7 +52,8 @@ class WorkoutTimer(QMainWindow):
     def initUI(self):
         self.setWindowTitle("Workout Timer")
         self.setWindowIcon(QIcon(resource_path("icon.ico")))
-        self.setGeometry(100, 100, 450, 450)
+        self.setGeometry(100, 100, 400, 530)
+        self.setMinimumSize(400, 530)  # Allow smaller minimum size
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -65,10 +66,29 @@ class WorkoutTimer(QMainWindow):
         font_button  = QFont(); font_button.setPointSize(20); font_button.setBold(True)
         font_toggle   = QFont(); font_toggle.setPointSize(9)
 
-        # Heading
-        self.heading = QLabel("Workout Interval Timer")
-        self.heading.setFont(font_heading)
-        layout.addWidget(self.heading)
+        # --- Preset Dropdown Button ---
+        preset_row = QHBoxLayout()
+        preset_row.addStretch()
+        self.preset_button = QPushButton("☰")
+        self.preset_button.setFixedWidth(40)
+        self.preset_button.setFixedHeight(25)
+        self.preset_button.setToolTip("Presets: Save or load up to 3 timer settings")
+        self.preset_menu = QMenu(self)
+        # Add actions for 3 slots
+        self.preset_actions = []
+        for i in range(3):
+            load_action = QAction(f"Load Preset {i+1}", self)
+            save_action = QAction(f"Save Current to Preset {i+1}", self)
+            self.preset_menu.addAction(load_action)
+            self.preset_menu.addAction(save_action)
+            if i < 2:
+                self.preset_menu.addSeparator()
+            load_action.triggered.connect(lambda _, idx=i: self.load_preset(idx))
+            save_action.triggered.connect(lambda _, idx=i: self.save_preset(idx))
+            self.preset_actions.append((load_action, save_action))
+        self.preset_button.setMenu(self.preset_menu)
+        preset_row.addWidget(self.preset_button)
+        layout.addLayout(preset_row)
 
         # Sliders + TextBoxes
         for text, attr in [
@@ -79,6 +99,8 @@ class WorkoutTimer(QMainWindow):
         ]:
             h = QHBoxLayout()
             lbl = QLabel(text)
+            lbl.setMinimumWidth(80)
+            lbl.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
             h.addWidget(lbl)
 
             slider = QSlider(Qt.Horizontal)
@@ -94,7 +116,8 @@ class WorkoutTimer(QMainWindow):
             slider.setMaximum(maxv)
             slider.setValue(getattr(self.settings, attr))
             slider.setPageStep(1)
-            slider.setMinimumWidth(240)
+            slider.setMinimumWidth(120)  # Reduced from 240 for better scaling
+            slider.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             slider.valueChanged.connect(self.slider_changed)
             setattr(self, f"{attr}_slider", slider)
             slider.setStyleSheet("""
@@ -154,11 +177,10 @@ class WorkoutTimer(QMainWindow):
         self.always_on_top.setCheckable(True)
         self.always_on_top.setChecked(self.settings.always_on_top)
         self.always_on_top.setFont(font_toggle)
-        self.always_on_top.setFixedWidth(180)
         self.always_on_top.clicked.connect(self.toggle_always_on_top)
         self.always_on_top.setToolTip("Keep the timer window always on top of other windows")
         self.always_on_top.setStyleSheet("""
-            QPushButton { padding:5px; border:2px solid #666; border-radius:15px; background-color:#444; }
+            QPushButton { padding:5px; solid #666; background-color:#444; }
             QPushButton:checked { background-color:#2a5699; border-color:#1a3b6d; }
             QPushButton:hover { background-color:#555; }
             QPushButton:checked:hover { background-color:#366bb8; }
@@ -169,7 +191,6 @@ class WorkoutTimer(QMainWindow):
         self.minimize_after_complete_toggle = QPushButton("Minimize After Complete")
         self.minimize_after_complete_toggle.setCheckable(True)
         self.minimize_after_complete_toggle.setFont(font_toggle)
-        self.minimize_after_complete_toggle.setFixedWidth(180)
         self.minimize_after_complete_toggle.clicked.connect(self.toggle_minimize_after_complete)
         self.minimize_after_complete_toggle.setToolTip("Minimize the timer window after completing all rounds")
         self.minimize_after_complete_toggle.setStyleSheet(self.always_on_top.styleSheet())
@@ -182,7 +203,6 @@ class WorkoutTimer(QMainWindow):
         self.minimalist_button = QPushButton("Minimalist Mode")
         self.minimalist_button.setCheckable(True)
         self.minimalist_button.setFont(font_toggle)
-        self.minimalist_button.setFixedWidth(180)
         self.minimalist_button.clicked.connect(self.toggle_minimalist_mode)
         self.minimalist_button.setToolTip("""Switch to minimalist mode for a smaller and cleaner interface
 (cannot set sliders/textboxes in this mode)""")
@@ -474,3 +494,32 @@ Double Left-click to exit minimalist mode""")
             self.minimalist_widget.current_round = self.current_round
             self.minimalist_widget.total_rounds = self.settings.rounds
             self.minimalist_widget.update()
+
+    def save_preset(self, idx):
+        """Save current timer settings to a preset slot."""
+        preset = {
+            "workout_duration": self.settings.workout_duration,
+            "rest_duration": self.settings.rest_duration,
+            "lead_up_duration": self.settings.lead_up_duration,
+            "rounds": self.settings.rounds
+        }
+        self.settings.presets[idx] = preset
+        self.settings.save_to_file()
+        self.statusBar().showMessage(f"Preset {idx+1} saved!", 2000)
+
+    def load_preset(self, idx):
+        """Load timer settings from a preset slot."""
+        preset = self.settings.presets[idx]
+        if not preset:
+            self.statusBar().showMessage(f"Preset {idx+1} is empty.", 2000)
+            return
+        # Update settings and UI
+        for key in ["workout_duration", "rest_duration", "lead_up_duration", "rounds"]:
+            setattr(self.settings, key, preset[key])
+            slider = getattr(self, f"{key}_slider")
+            text_box = getattr(self, f"{key}_text_box")
+            slider.setValue(preset[key])
+            text_box.setText(str(preset[key]))
+        self.settings.save_to_file()
+        self.statusBar().showMessage(f"Preset {idx+1} loaded!", 2000)
+        self.update_ui_elements()

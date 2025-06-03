@@ -1,6 +1,7 @@
 import os
 import json
 from dataclasses import dataclass, asdict
+from typing import List, Dict
 
 SETTINGS_FILE = "settings.json"
 
@@ -18,6 +19,12 @@ class Config:
     minimalist_rounds_active: bool = False
     minimalist_time_active: bool = False
     minimalist_progressbar_active: bool = False
+    presets: list = None
+
+    def __post_init__(self):
+        if self.presets is None:
+            # Each preset is a dict of settings, or None if unused
+            self.presets = [None, None, None]
 
     @staticmethod
     def load_from_file(filename: str = SETTINGS_FILE) -> "Config":

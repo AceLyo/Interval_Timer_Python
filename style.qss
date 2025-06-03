@@ -19,7 +19,7 @@ QPushButton {
     background-color:rgb(41, 108, 209);
     color: #ecf0f1;
     border-radius: 8px;
-    padding: 8px;
+    padding: 1px;
     font-family: "Bahnschrift Light", "Liberation Sans", "Arial";
 }
 QPushButton:hover {
