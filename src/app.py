@@ -14,7 +14,7 @@ from .config import Config
 from .timer_state import TimerState
 from .widgets import MinimalistWidget
 
-QToolTip.showTime = 5000  # Set tooltip display time to 5 seconds
+QToolTip.showTime = 4000  # Set tooltip display time
 
 class WorkoutTimer(QMainWindow):
     def __init__(self):
@@ -184,8 +184,8 @@ class WorkoutTimer(QMainWindow):
         self.minimalist_button.setFont(font_toggle)
         self.minimalist_button.setFixedWidth(180)
         self.minimalist_button.clicked.connect(self.toggle_minimalist_mode)
-        self.minimalist_button.setToolTip("Switch to minimalist mode for a smaller and cleaner interface"
-        " (cannot set sliders/textboxes in this mode)")
+        self.minimalist_button.setToolTip("""Switch to minimalist mode for a smaller and cleaner interface
+(cannot set sliders/textboxes in this mode)""")
         self.minimalist_button.setStyleSheet(self.always_on_top.styleSheet())
         row2.addWidget(self.minimalist_button)
 
@@ -220,6 +220,9 @@ class WorkoutTimer(QMainWindow):
             if not self.minimalist_widget:
                 self.minimalist_widget = MinimalistWidget(self)
                 self.minimalist_widget.move(self.x(), self.y())
+            self.minimalist_widget.setToolTip("""Right-click for context menu
+Double Left-click to exit minimalist mode""")
+            self.minimalist_widget.setToolTipDuration(2400)
             self.minimalist_widget.show()
             self.hide()
             self.minimalist_button.setChecked(True)
