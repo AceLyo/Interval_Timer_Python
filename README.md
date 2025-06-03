@@ -2,7 +2,7 @@
 
 A simple interval timer for workouts, built with Python and PyQt5.
 
-![Python Interval Timer Screenshot 2025-05-07 162156](https://github.com/user-attachments/assets/ef521808-0fbc-4566-bedb-cd40554b20c6)
+![Screenshot 2025-06-02 213402](https://github.com/user-attachments/assets/3c5e5236-4178-483f-9d72-a78fae17f57e)
 
 ## Features
 
