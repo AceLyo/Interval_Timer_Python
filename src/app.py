@@ -136,25 +136,30 @@ class WorkoutTimer(QMainWindow):
             h.addWidget(tb)
 
             layout.addLayout(h)
-
+        
         # Control Buttons
+        control_button_height = 40
         btn_row = QHBoxLayout(); btn_row.setSpacing(10)
         # Start button
         self.start_button  = QPushButton("Start");  self.start_button.setFont(font_button);  
         self.start_button.clicked.connect(self.start_timer);  btn_row.addWidget(self.start_button)
         self.start_button.setToolTip("Start the timer with current settings")
+        self.start_button.setFixedHeight(control_button_height)
         # Pause button
         self.pause_button  = QPushButton("Pause");  self.pause_button.setFont(font_button);  
         self.pause_button.clicked.connect(self.pause_timer);  btn_row.addWidget(self.pause_button)
         self.pause_button.setToolTip("Pause the timer")
+        self.pause_button.setFixedHeight(control_button_height)
         # Resume button
         self.resume_button = QPushButton("Resume"); self.resume_button.setFont(font_button); 
         self.resume_button.clicked.connect(self.resume_timer); btn_row.addWidget(self.resume_button)
         self.resume_button.setToolTip("Resume the timer from a paused state")
+        self.resume_button.setFixedHeight(control_button_height)
         # Stop button
         self.stop_button   = QPushButton("Stop");   self.stop_button.setFont(font_button); 
         self.stop_button.clicked.connect(self.stop_timer);   btn_row.addWidget(self.stop_button)
         self.stop_button.setToolTip("Stop the timer and reset all states")
+        self.stop_button.setFixedHeight(control_button_height)
         # Add buttons to layout
         layout.addLayout(btn_row)
 
