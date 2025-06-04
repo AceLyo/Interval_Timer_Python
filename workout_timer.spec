@@ -29,7 +29,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,  # Exclude binaries if using COLLECT
-    name='Workout Timer',  # Name of the executable
+    name='Workout_Timer',  # Name of the executable
     debug=False,
     console=False,  # Set to True if you want a console window
     icon='icon.ico',  # Optional: Path to the icon file
@@ -42,5 +42,5 @@ coll = COLLECT(
     a.datas,
     strip=False,
     upx=True,
-    name='Workout Timer'
+    name='Workout_Timer'
 )
