@@ -1,0 +1,11 @@
+Install dependencies: pip install PyQt5 pygame
+
+Run from src directory:
+cd src
+python main.py
+
+Or run from root directory:
+python -m src.main
+
+Or use the pre-built executable:
+.\dist\Workout_Timer\Workout_Timer.exe

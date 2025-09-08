@@ -1,3 +1,4 @@
+# type: ignore
 import time
 import pygame
 from PyQt5.QtWidgets import (
@@ -493,7 +494,6 @@ Double Left-click to exit minimalist mode""")
             # Update minimalist widget properties
             self.minimalist_widget.progress = prog
             self.minimalist_widget.active_color = QColor(color)
-            self.minimalist_widget.bg_color = QColor(gray)
             self.minimalist_widget.current_state = self.state
             self.minimalist_widget.remaining_time = self.remaining_time
             self.minimalist_widget.current_round = self.current_round

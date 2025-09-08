@@ -1,11 +1,13 @@
+# type: ignore
 from PyQt5.QtWidgets import QWidget, QMenu, QLabel, QVBoxLayout
 from PyQt5.QtCore import Qt, QPoint
-from PyQt5.QtGui import QPainter, QBrush, QColor
+from PyQt5.QtGui import QPainter, QBrush, QColor, QLinearGradient
 from PyQt5.QtWidgets import QApplication
 
 from .timer_state import TimerState
 from .config import Config
 
+# Minimalist widget for the minimalist mode
 class MinimalistWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -16,6 +18,18 @@ class MinimalistWidget(QWidget):
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
+
+        # use the same fallback list as the main window style sheet
+        self.setStyleSheet('''
+            QWidget {
+                font-family: "Bahnschrift Light", "Liberation Sans", "Arial";
+                font-weight: bold;
+            }
+            QMenu {
+                font-family: "Liberation Sans", "Arial";
+                font-weight: normal;
+            }
+        ''')
 
         # compute size
         screen_geometry = QApplication.primaryScreen().availableGeometry()
@@ -37,7 +51,7 @@ class MinimalistWidget(QWidget):
         else:
             self.setFixedSize(self.base_size * 2, self.base_size // 2)
 
-        # default circle color
+        # default circle color without fill
         grey = "#3D3D3D"
         self.color = QColor(grey)
         # Add progress bar colors
@@ -47,7 +61,6 @@ class MinimalistWidget(QWidget):
         # Add these properties
         self.progress = 0
         self.active_color = QColor(grey)
-        self.bg_color = QColor("#5A5177")
         self.current_state = None
         self.remaining_time = 0
         self.current_round = 0
@@ -121,9 +134,14 @@ class MinimalistWidget(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         
+        # Create gradient
+        gradient = QLinearGradient(0, 0, 0, self.height())
+        gradient.setColorAt(0, QColor(85, 60, 115))  # Top color
+        gradient.setColorAt(1, QColor(40, 40, 85))  # Bottom color
+        
         if self.is_circle:
-            # Draw background circle
-            painter.setBrush(QBrush(self.bg_color))
+            # Draw background circle with gradient
+            painter.setBrush(QBrush(gradient))
             painter.setPen(Qt.NoPen)
             painter.drawEllipse(0, 0, self.width(), self.height())
             
@@ -133,8 +151,8 @@ class MinimalistWidget(QWidget):
                 span_angle = int(-self.progress * 360 * 16)  # QPainter uses 16th of a degree
                 painter.drawPie(0, 0, self.width(), self.height(), 90 * 16, span_angle)
         else:
-            # Draw progress bar background
-            painter.setBrush(QBrush(self.bg_color))
+            # Draw progress bar background with gradient
+            painter.setBrush(QBrush(gradient))
             painter.setPen(Qt.NoPen)
             radius = int(self.height() / 1.8)  # Dynamic roundedness
             painter.drawRoundedRect(0, 0, self.width(), self.height(), radius, radius)
@@ -167,7 +185,6 @@ class MinimalistWidget(QWidget):
         painter.setFont(font)
 
         if self.show_round_text and self.show_time_text:
-            rounds_left = self.total_rounds - self.current_round
             mins, secs = divmod(self.remaining_time, 60)
                 
             if self.is_circle:
@@ -175,7 +192,7 @@ class MinimalistWidget(QWidget):
                 bottom_rect = rect.adjusted(0, rect.height()//4, 0, 0)
                 top_rect = rect.adjusted(0, 0, 0, -rect.height()//4)
                 
-                painter.drawText(top_rect, Qt.AlignCenter, f"R:{rounds_left}")
+                painter.drawText(top_rect, Qt.AlignCenter, f"{self.current_round + 1}/{self.total_rounds}")
                 painter.drawText(bottom_rect, Qt.AlignCenter, f"{mins:02}:{secs:02}")
                 
             else:
@@ -184,13 +201,12 @@ class MinimalistWidget(QWidget):
                 left_rect = rect.adjusted(padding, 0, -rect.width()//2, 0)
                 right_rect = rect.adjusted(rect.width()//2, 0, -padding, 0)
                 
-                painter.drawText(left_rect, Qt.AlignCenter, f"R:{rounds_left}")
+                painter.drawText(left_rect, Qt.AlignCenter, f"{self.current_round + 1}/{self.total_rounds}")
                 painter.drawText(right_rect, Qt.AlignCenter, f"{mins:02}:{secs:02}")
         else:
             # Only one enabled - center it
             if self.show_round_text:
-                rounds_left = self.total_rounds - self.current_round
-                text = f"R:{rounds_left}"
+                text = f"{self.current_round + 1}/{self.total_rounds}"
             else:
                 mins, secs = divmod(self.remaining_time, 60)
                 text = f"{mins:02}:{secs:02}"
