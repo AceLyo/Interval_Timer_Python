@@ -37,3 +37,9 @@ QProgressBar::chunk {
     background-color: #FFA500; 
     width: 20px;
 }
+
+QMenu::separator {
+                height: 2px;
+                background: #444;
+                margin: 3px 8px;
+            }

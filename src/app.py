@@ -2,13 +2,13 @@
 import time
 import pygame
 from PyQt5.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QMainWindow, QWidget, QApplication, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QSlider, QProgressBar,
-    QLineEdit, QToolTip, QMenu, QAction, QSizePolicy
+    QLineEdit, QToolTip, QMenu, QAction, QSizePolicy, QSystemTrayIcon
 )
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import (
-    QFont, QIntValidator, QColor, QIcon
+    QFont, QIntValidator, QColor, QIcon, QCursor
 )
 from .utils import resource_path
 from .config import Config
@@ -24,6 +24,13 @@ class WorkoutTimer(QMainWindow):
         # --- Settings from settings.json ---
         self.settings = Config.load_from_file()
         self.minimalist_widget = None
+        # Tray icon (created lazily when needed)
+        self.tray_icon = None
+
+        # --- Status Bar (pre-created to avoid layout jump when messages appear)
+        self.status_bar = self.statusBar()  # create once so central widget always reserves space
+        self.status_bar.setFixedHeight(22)  # keep constant height to prevent squeezing
+        self.status_bar.clearMessage()
 
         # --- Timer State ---
         self.current_round = 0
@@ -53,8 +60,8 @@ class WorkoutTimer(QMainWindow):
     def initUI(self):
         self.setWindowTitle("Workout Timer")
         self.setWindowIcon(QIcon(resource_path("icon.ico")))
-        self.setGeometry(100, 100, 400, 530)
-        self.setMinimumSize(400, 530)  # Allow smaller minimum size
+        self.setGeometry(100, 100, 400, 550)
+        self.setMinimumSize(400, 540)  # Allow smaller minimum size
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -69,9 +76,15 @@ class WorkoutTimer(QMainWindow):
 
         # --- Preset Dropdown Button ---
         preset_row = QHBoxLayout()
+        # Fanfare: Visual fanfare message (placed to the left of the preset button)
+        self.fanfare_label = QLabel()
+        # Align left within the row
+        self.fanfare_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        preset_row.addWidget(self.fanfare_label)
+        # Spacer pushes the preset button to the far right
         preset_row.addStretch()
         self.preset_button = QPushButton("☰")
-        self.preset_button.setFixedWidth(40)
+        self.preset_button.setFixedWidth(50)
         self.preset_button.setFixedHeight(25)
         self.preset_button.setToolTip("Presets: Save or load up to 3 timer settings")
         self.preset_menu = QMenu(self)
@@ -88,10 +101,14 @@ class WorkoutTimer(QMainWindow):
             save_action.triggered.connect(lambda _, idx=i: self.save_preset(idx))
             self.preset_actions.append((load_action, save_action))
         self.preset_button.setMenu(self.preset_menu)
+        # Show tooltips when hovering over menu actions
+        self.preset_menu.hovered.connect(self._show_preset_action_tooltip)
+        # Update tooltips and enabled states based on saved presets
+        self.update_preset_tooltips()
         preset_row.addWidget(self.preset_button)
         layout.addLayout(preset_row)
 
-        # Sliders + TextBoxes
+        # Sliders + TextBoxes: Workout, Rest, Rounds, Lead-up
         for text, attr in [
             ("Workout (sec)", "workout_duration"),
             ("Rest (sec)",    "rest_duration"),
@@ -104,8 +121,15 @@ class WorkoutTimer(QMainWindow):
             lbl.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
             h.addWidget(lbl)
 
+            # Set ranges(min, max) for each slider
             slider = QSlider(Qt.Horizontal)
-            minv = 2 if "duration" in attr else 1
+            minv = (
+                2 if attr=="workout_duration" else
+                 2 if attr=="rest_duration" else
+                 1 if attr=="rounds" else
+                 0 if attr=="lead_up_duration" else
+                else 0
+            )
             maxv = (
                 180 if attr=="workout_duration" else
                  90 if attr=="rest_duration" else
@@ -138,7 +162,7 @@ class WorkoutTimer(QMainWindow):
 
             layout.addLayout(h)
         
-        # Control Buttons
+        # Control Buttons: Start, Pause, Resume, Stop
         control_button_height = 40
         btn_row = QHBoxLayout(); btn_row.setSpacing(10)
         # Start button
@@ -164,11 +188,20 @@ class WorkoutTimer(QMainWindow):
         # Add buttons to layout
         layout.addLayout(btn_row)
 
-        # Status Labels & ProgressBar
+        # Add margin above status labels
+        layout.addSpacing(10)
+
+        # Status Labels & ProgressBar: Round, State, Time Remaining
         self.round_label = QLabel(); self.round_label.setFont(font_label); layout.addWidget(self.round_label)
         self.state_label = QLabel(); self.state_label.setFont(font_label); layout.addWidget(self.state_label)
         self.time_label  = QLabel(); self.time_label.setFont(font_label);  layout.addWidget(self.time_label)
+        # Need to prevent cropping of time label
+        self.time_label.setFixedHeight(38)
 
+        # Add margin above progress bar
+        layout.addSpacing(10)
+
+        # ProgressBar: Progress of the timer
         self.progress_bar = QProgressBar()
         self.progress_bar.setTextVisible(True)
         self.progress_bar.setFormat("%p%")
@@ -176,7 +209,7 @@ class WorkoutTimer(QMainWindow):
 
         layout.addSpacing(15)
 
-        # Toggle Buttons row 1
+        # Toggle Buttons row 1: Always on Top, Minimize After Complete
         row1 = QHBoxLayout(); row1.setSpacing(10)
         # Always on Top
         self.always_on_top = QPushButton("Always on Top")
@@ -204,21 +237,17 @@ class WorkoutTimer(QMainWindow):
 
         layout.addLayout(row1)
 
-        # Toggle Buttons row 2
+        # Toggle Buttons row 2: Minimalist Mode
         row2 = QHBoxLayout()
         self.minimalist_button = QPushButton("Minimalist Mode")
         self.minimalist_button.setCheckable(True)
         self.minimalist_button.setFont(font_toggle)
         self.minimalist_button.clicked.connect(self.toggle_minimalist_mode)
-        self.minimalist_button.setToolTip("""Switch to minimalist mode for a smaller and cleaner interface
-(cannot set sliders/textboxes in this mode)""")
+        self.minimalist_button.setToolTip("Switch to minimalist mode for a smaller and cleaner interface\n(cannot set sliders/textboxes in this mode)")
         self.minimalist_button.setStyleSheet(self.always_on_top.styleSheet())
         row2.addWidget(self.minimalist_button)
 
         layout.addLayout(row2)
-
-        # Fanfare
-        self.fanfare_label = QLabel(); self.fanfare_label.setAlignment(Qt.AlignCenter); layout.addWidget(self.fanfare_label)
 
         # Final UI sync
         self.apply_initial_toggles()
@@ -246,16 +275,20 @@ class WorkoutTimer(QMainWindow):
             if not self.minimalist_widget:
                 self.minimalist_widget = MinimalistWidget(self)
                 self.minimalist_widget.move(self.x(), self.y())
-            self.minimalist_widget.setToolTip("""Right-click for context menu
-Double Left-click to exit minimalist mode""")
+            self.minimalist_widget.setToolTip("Right-click for context menu\nDouble Left-click to exit minimalist mode")
             self.minimalist_widget.setToolTipDuration(2400)
             self.minimalist_widget.show()
             self.hide()
+            # Ensure tray icon is visible while in minimalist mode
+            self._show_tray_icon()
             self.minimalist_button.setChecked(True)
         else:
             if self.minimalist_widget:
                 self.minimalist_widget.hide()
             self.show()
+            # Hide tray icon when exiting minimalist mode
+            if self.tray_icon:
+                self.tray_icon.hide()
             self.minimalist_button.setChecked(False)
 
 
@@ -378,6 +411,19 @@ Double Left-click to exit minimalist mode""")
         self.settings.minimize_after_complete = self.minimize_after_complete_toggle.isChecked()
         self.settings.save_to_file()
 
+    # Helper ------------------------------------------------------------
+    def _minimize_after_complete(self):
+        """Minimize either the main window or the minimalist widget based on current mode."""
+        if self.settings.minimalist_mode_active and self.minimalist_widget:
+            # Hide minimalist widget first (so it won't linger on screen)
+            self.minimalist_widget.hide()
+            # Minimize the main window instead – it will appear in taskbar properly
+            # self.showMinimized()
+            # Tray icon so user can restore
+            self._show_tray_icon()
+        else:
+            self.showMinimized()
+         
     def toggle_minimalist_mode(self):
         """Toggle the 'Minimalist Mode' setting."""
         new_value = not self.settings.minimalist_mode_active
@@ -424,9 +470,10 @@ Double Left-click to exit minimalist mode""")
                         self.start_time = None
                         self.current_round = 0
                         self.play_sound(is_work=False, is_all_complete=True)
-                        self.trigger_visual_fanfare()
+                        if not self.settings.minimalist_mode_active:
+                            self.trigger_visual_fanfare()
                         if self.minimize_after_complete_toggle.isChecked():
-                            self.showMinimized()
+                            self._minimize_after_complete()
 
         # refresh UI
         self.update_ui_elements()
@@ -511,6 +558,8 @@ Double Left-click to exit minimalist mode""")
         self.settings.presets[idx] = preset
         self.settings.save_to_file()
         self.statusBar().showMessage(f"Preset {idx+1} saved!", 2000)
+        # Refresh tooltips and enabled states
+        self.update_preset_tooltips()
 
     def load_preset(self, idx):
         """Load timer settings from a preset slot."""
@@ -528,3 +577,68 @@ Double Left-click to exit minimalist mode""")
         self.settings.save_to_file()
         self.statusBar().showMessage(f"Preset {idx+1} loaded!", 2000)
         self.update_ui_elements()
+        # Ensure tooltips are up to date (in case preset was previously empty)
+        self.update_preset_tooltips()
+
+    # ---------------- Tray icon management ------------------
+    def _show_tray_icon(self):
+        """Create and display a system-tray icon for quick restore."""
+        if self.tray_icon is None:
+            icon_path = resource_path("icon.ico")
+            self.tray_icon = QSystemTrayIcon(QIcon(icon_path), self)
+
+            # Context menu for the tray icon
+            tray_menu = QMenu()
+            restore_action = tray_menu.addAction("Restore")
+            restore_action.triggered.connect(self._restore_from_tray)
+            exit_action = tray_menu.addAction("Exit")
+            exit_action.triggered.connect(QApplication.quit)
+            self.tray_icon.setContextMenu(tray_menu)
+
+            # Double-click (or single depending on OS) also restores
+            self.tray_icon.activated.connect(lambda reason: self._restore_from_tray() if reason == QSystemTrayIcon.Trigger else None)
+
+        self.tray_icon.show()
+
+    def _restore_from_tray(self):
+        """Restore the timer from the tray icon."""
+        if self.settings.minimalist_mode_active and self.minimalist_widget:
+            self.minimalist_widget.show()
+        else:
+            self.showNormal()
+        # Hide tray icon only if not remaining in minimalist mode
+        if self.tray_icon and not self.settings.minimalist_mode_active:
+            self.tray_icon.hide()
+
+    def update_preset_tooltips(self):
+        """Update tooltips and enabled state for preset actions."""
+        for idx, (load_action, _save_action) in enumerate(self.preset_actions):
+            preset = self.settings.presets[idx]
+            normal_text = f"Load Preset {idx+1}"
+            if preset:
+                # Enabled + regular font
+                load_action.setEnabled(True)
+                load_action.setText(normal_text)
+                normal_font = load_action.font()
+                load_action.setFont(normal_font)
+                tt = (
+                    f"Workout: {preset['workout_duration']}s\n"
+                    f"Rest: {preset['rest_duration']}s\n"
+                    f"Lead-up: {preset['lead_up_duration']}s\n"
+                    f"Rounds: {preset['rounds']}"
+                )
+                load_action.setToolTip(tt)
+            else:
+                # Disabled + dimmer text 
+                load_action.setEnabled(True)
+                load_action.setText(f"{normal_text} (empty)")
+                normal_font = load_action.font()
+                normal_font.setItalic(True)
+                load_action.setFont(normal_font)
+                load_action.setToolTip("(empty)")
+
+    def _show_preset_action_tooltip(self, action):
+        """Display tooltip for the hovered preset menu action manually."""
+        tooltip = action.toolTip()
+        if tooltip:
+            QToolTip.showText(QCursor.pos(), tooltip, self.preset_menu)

@@ -1,21 +1,12 @@
 ---------------- To Do ----------------
 
-- After finishing all rounds in the minimalist mode and having minimize after complete turned on, once restored from being minimized, the main window shows up alongside the minimalist widget
-	
-- The preset buttons to load presets should allow the user to see the values associated with it, possibly through tooltips with the info
-
-- Add the preset menu to the minimalist mode context/right click menu
-
 
 
 ---------------- Eventual ----------------
 
-- Have checkboxes in the right click context menu of minimalist mode for 'Always on Top' and 'Minimize After Complete'
 
-- Text pop ups at the bottom of the window when loading or saving seem to mess up spacing of text below 'Start' button and above Progress Bar and squish it a bit
 
-- Takes a while to boot the exe
-	- Maybe add a loading indicator for feedback 
+
 
 
 
@@ -144,3 +135,16 @@ menu item causes it to be selected, rather than needing to be clicked again
 
 - Instead of R:(currentRound) for round display in minimalist mode, have (currentRound)/(totalRounds) 
 
+- After finishing all rounds in the minimalist mode and having minimize after complete turned on, once restored from being minimized, the main window shows up alongside the minimalist widget
+
+- The preset buttons to load presets should allow the user to see the values associated with it, possibly through tooltips with the info
+
+- Add the preset dropdown menu to the minimalist mode context/right click menu
+
+- Have checkboxes in the right click context menu of minimalist mode for 'Always on Top' and 'Minimize After Complete'
+
+- Text pop ups at the bottom of the window when loading or saving seem to mess up spacing of text below 'Start' button and above Progress Bar and squish it a bit
+
+- Takes a while to boot the exe, add a loading indicator for feedback 
+
+- 'Time Remaining' being cropped in main window, need to add margin

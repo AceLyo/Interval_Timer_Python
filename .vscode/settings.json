@@ -1,0 +1,14 @@
+{
+    "cursorpyright.analysis.typeCheckingMode": "off",
+    "cursorpyright.analysis.diagnosticSeverityOverrides": {
+        "strictParameterNoneValue": true,
+        "reportMissingModuleSource": "warning",
+        "reportInvalidTypeForm": "warning",
+        "reportMissingImports": "warning",
+        "reportUndefinedVariable": "warning",
+        "reportUnknownMemberType": "none",
+        "reportMissingTypeStubs": "none",
+        "reportUnannotatedClassAttribute": "none"
+    },
+    "python.languageServer": "None"
+}

@@ -9,12 +9,7 @@ a = Analysis(
     pathex=[],  # Additional paths to search for imports
     binaries=[],  # Additional binary files
     datas=[  # Data files to include
-        ('star.png', '.'),  # (source, destination folder)
-        ('style.qss', '.'),
-        ('work_finish.mp3', '.'),
-        ('rest_finish.mp3', '.'),
-        ('complete_finish.mp3', '.'),
-        ('icon.ico', '.')
+        ('resources', 'resources'),
     ],
     hiddenimports=['pygame'],  # Hidden imports not detected automatically
     hookspath=[],  # Custom hooks for PyInstaller
@@ -32,7 +27,8 @@ exe = EXE(
     name='Workout_Timer',  # Name of the executable
     debug=False,
     console=False,  # Set to True if you want a console window
-    icon='icon.ico',  # Optional: Path to the icon file
+    icon='resources/icon.ico',  # Optional: Path to the icon file
+    splash='resources/splash.png', # Optional: Path to splash screen image
 )
 
 coll = COLLECT(
