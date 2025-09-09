@@ -127,7 +127,7 @@ class WorkoutTimer(QMainWindow):
                 2 if attr=="workout_duration" else
                  2 if attr=="rest_duration" else
                  1 if attr=="rounds" else
-                 0 if attr=="lead_up_duration" else
+                 0 if attr=="lead_up_duration" 
                 else 0
             )
             maxv = (

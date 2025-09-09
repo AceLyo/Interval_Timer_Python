@@ -1,7 +1,7 @@
+
 Install dependencies: pip install PyQt5 pygame
 
-Rebuild spec:
-pyinstaller workout_timer.spec
+----------------------------------------------
 
 Run from src directory:
 cd src
@@ -9,3 +9,13 @@ python main.py
 
 Or run from root directory:
 python -m src.main
+
+----------------------------------------------
+
+Remove file from git source control:
+git rm --cached filename12345.filetype
+
+----------------------------------------------
+
+Rebuild exe to dist directory:
+pyinstaller workout_timer.spec
