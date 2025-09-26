@@ -74,18 +74,23 @@ class WorkoutTimer(QMainWindow):
         font_button  = QFont(); font_button.setPointSize(20); font_button.setBold(True)
         font_toggle   = QFont(); font_toggle.setPointSize(9)
 
-        # --- Preset Dropdown Button ---
-        preset_row = QHBoxLayout()
-        # Fanfare: Visual fanfare message (placed to the left of the preset button)
+        # --- Fanfare label ---
         self.fanfare_label = QLabel()
-        # Align left within the row
-        self.fanfare_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        preset_row.addWidget(self.fanfare_label)
-        # Spacer pushes the preset button to the far right
-        preset_row.addStretch()
-        self.preset_button = QPushButton("☰")
-        self.preset_button.setFixedWidth(50)
+        self.fanfare_label.setAlignment(Qt.AlignCenter)
+        # (Will be inserted between the two dropdown buttons below)
+
+        # --- Dropdown Row: Presets (left) | Fanfare (center) | Settings (right) ---
+        dropdown_row = QHBoxLayout()
+
+        # Preset Dropdown button (left)
+        self.preset_button = QPushButton()
+        self.preset_button.setIcon(QIcon(resource_path("barsHorizontal.png")))
         self.preset_button.setFixedHeight(25)
+        # Center the icon and remove the hidden padding that Qt reserves for the menu indicator
+        self.preset_button.setStyleSheet(
+            # just shift the icon a bit left so it looks centred
+            "QPushButton { padding-left: 0px; padding-right: 8px; }"
+        )
         self.preset_button.setToolTip("Presets: Save or load up to 3 timer settings")
         self.preset_menu = QMenu(self)
         # Add actions for 3 slots
@@ -105,8 +110,32 @@ class WorkoutTimer(QMainWindow):
         self.preset_menu.hovered.connect(self._show_preset_action_tooltip)
         # Update tooltips and enabled states based on saved presets
         self.update_preset_tooltips()
-        preset_row.addWidget(self.preset_button)
-        layout.addLayout(preset_row)
+        dropdown_row.addWidget(self.preset_button)
+
+        # Stretch, then fanfare label in center, then another stretch
+        dropdown_row.addStretch()
+        dropdown_row.addWidget(self.fanfare_label)
+        dropdown_row.addStretch()
+
+        # Settings Dropdown button (right)
+        self.settings_button = QPushButton()
+        self.settings_button.setIcon(QIcon(resource_path("reset.png")))
+        self.settings_button.setFixedHeight(25)
+        # Same style override for the settings button
+        self.settings_button.setStyleSheet(
+            "QPushButton { padding-left: 0px; padding-right: 8px; }"
+        )
+        self.settings_button.setToolTip("Settings: Reset settings to default or erase all saved presets")
+        self.settings_menu = QMenu(self)
+        reset_action = self.settings_menu.addAction("Reset Settings to Default")
+        erase_action = self.settings_menu.addAction("Erase All Saved Presets")
+        reset_action.triggered.connect(self.reset_settings)
+        erase_action.triggered.connect(self.erase_presets)
+        self.settings_button.setMenu(self.settings_menu)
+        dropdown_row.addWidget(self.settings_button)
+
+        layout.addLayout(dropdown_row)
+        # --- End of dropdown row ---
 
         # Sliders + TextBoxes: Workout, Rest, Rounds, Lead-up
         for text, attr in [
@@ -253,6 +282,9 @@ class WorkoutTimer(QMainWindow):
         self.apply_initial_toggles()
         self.update_ui_elements()
 
+    ###############################################
+    # UI End
+    ###############################################
 
     ###############################################
     # For intializing toggles from settings.json
@@ -396,20 +428,73 @@ class WorkoutTimer(QMainWindow):
     #####################################
     # Main Menu Toggle methods 
     #####################################
-    def toggle_always_on_top(self):
-        """Toggle the 'Always on Top' setting."""
-        self.settings.always_on_top = self.always_on_top.isChecked()
+    def toggle_always_on_top(self, checked: bool | None = None):
+        """Toggle the 'Always on Top' setting.
+
+        This slot can be triggered from both the main window *Always on Top* ``QPushButton``
+        **or** the same option inside the minimalist-mode context menu (a ``QAction``).
+
+        When invoked from either source we receive the new *checked* state as the first
+        positional argument (Qt automatically supplies the boolean). To keep the API
+        backward-compatible we treat the parameter as optional and fall back to the
+        sender's ``isChecked`` method when it is ``None``.
+        """
+
+        # Determine the new checked value ---------------------------------------
+        if checked is None:
+            sender = self.sender()
+            if sender is not None and hasattr(sender, "isChecked"):
+                checked = sender.isChecked()
+            else:
+                # Fallback – simply invert the current setting
+                checked = not self.settings.always_on_top
+
+        # Persist and apply the new value ---------------------------------------
+        self.settings.always_on_top = bool(checked)
         self.settings.save_to_file()
+
         if self.settings.always_on_top:
             self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
         else:
             self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
-        self.show()
 
-    def toggle_minimize_after_complete(self):
-        """Toggle the 'Minimize After Complete' setting."""
-        self.settings.minimize_after_complete = self.minimize_after_complete_toggle.isChecked()
+        # Keep UI elements in sync ---------------------------------------------
+        if hasattr(self, "always_on_top"):
+            self.always_on_top.setChecked(self.settings.always_on_top)
+
+        if getattr(self, "minimalist_widget", None):
+            self.minimalist_widget.always_on_top_checkbox.setChecked(self.settings.always_on_top)
+
+        # Only bring the main window to front if it is already showing
+        # (avoids popping up when user interacts via minimalist widget)
+        if self.isVisible() or not self.settings.minimalist_mode_active:
+            self.show()
+
+    def toggle_minimize_after_complete(self, checked: bool | None = None):
+        """Toggle the 'Minimize After Complete' setting.
+
+        Works for both the main window toggle button and the corresponding
+        minimalist-mode context-menu checkbox.
+        """
+
+        # Resolve the checked state -------------------------------------------
+        if checked is None:
+            sender = self.sender()
+            if sender is not None and hasattr(sender, "isChecked"):
+                checked = sender.isChecked()
+            else:
+                checked = not self.settings.minimize_after_complete
+
+        # Persist the choice ---------------------------------------------------
+        self.settings.minimize_after_complete = bool(checked)
         self.settings.save_to_file()
+
+        # Sync UI elements -----------------------------------------------------
+        if hasattr(self, "minimize_after_complete_toggle"):
+            self.minimize_after_complete_toggle.setChecked(self.settings.minimize_after_complete)
+
+        if getattr(self, "minimalist_widget", None):
+            self.minimalist_widget.minimize_after_complete_checkbox.setChecked(self.settings.minimize_after_complete)
 
     # Helper ------------------------------------------------------------
     def _minimize_after_complete(self):
@@ -642,3 +727,48 @@ class WorkoutTimer(QMainWindow):
         tooltip = action.toolTip()
         if tooltip:
             QToolTip.showText(QCursor.pos(), tooltip, self.preset_menu)
+
+    def reset_settings(self):
+        """Reset settings to default."""
+        # Reset the in-memory settings object
+        self.settings.reset_to_default()
+
+        # Sync the UI controls to the freshly reset values so the user sees the change
+        # Update sliders/text boxes without triggering intermediate slider_changed saves
+        keys = [
+            "workout_duration",
+            "rest_duration",
+            "lead_up_duration",
+            "rounds",
+        ]
+
+        # First, block signals for all relevant sliders
+        for key in keys:
+            getattr(self, f"{key}_slider").blockSignals(True)
+
+        # Now set the values
+        for key in keys:
+            value = getattr(self.settings, key)
+            slider = getattr(self, f"{key}_slider")
+            slider.setValue(value)
+            getattr(self, f"{key}_text_box").setText(str(value))
+
+        # Re-enable signals
+        for key in keys:
+            getattr(self, f"{key}_slider").blockSignals(False)
+
+        # With correct values in place, persist them once
+        self._save_settings()
+
+        # Refresh any UI elements that rely on the settings (labels, tooltips, etc.)
+        self.update_ui_elements()
+        self.update_preset_tooltips()
+
+        self.statusBar().showMessage("Settings reset to default!", 2000)
+
+    def erase_presets(self):
+        """Erase all saved presets."""
+        self.settings.presets = [None, None, None]
+        self.settings.save_to_file()
+        self.statusBar().showMessage("All saved presets erased!", 2000)
+        self.update_preset_tooltips()

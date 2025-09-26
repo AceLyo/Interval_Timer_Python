@@ -1,6 +1,6 @@
 ---------------- To Do ----------------
 
-
+- Takes a while to boot the exe, add a splash indicator for feedback 
 
 ---------------- Eventual ----------------
 
@@ -129,22 +129,30 @@ menu item causes it to be selected, rather than needing to be clicked again
 
 - Fix: allow window min size to be smaller and UI scales down with it
 
-- Edit color for minimalist mode background color to be the same gradient as the main window
+- Release version 1.1.0
 
-- Change minimalist mode font to match regular window
+- Fix: Edit color for minimalist mode background color to be the same gradient as the main window
 
-- Instead of R:(currentRound) for round display in minimalist mode, have (currentRound)/(totalRounds) 
+- Fix: Change minimalist mode font to match regular window
 
-- After finishing all rounds in the minimalist mode and having minimize after complete turned on, once restored from being minimized, the main window shows up alongside the minimalist widget
+- Fix: Instead of R:(currentRound) for round display in minimalist mode, have (currentRound)/(totalRounds) 
 
-- The preset buttons to load presets should allow the user to see the values associated with it, possibly through tooltips with the info
+- Fix: After finishing all rounds in the minimalist mode and having minimize after complete turned on, once restored from being minimized, the main window shows up alongside the minimalist widget
 
-- Add the preset dropdown menu to the minimalist mode context/right click menu
+- Feature: The preset buttons to load presets should allow the user to see the values associated with it, possibly through tooltips with the info
 
-- Have checkboxes in the right click context menu of minimalist mode for 'Always on Top' and 'Minimize After Complete'
+- Feature: Add the preset dropdown menu to the minimalist mode context/right click menu
 
-- Text pop ups at the bottom of the window when loading or saving seem to mess up spacing of text below 'Start' button and above Progress Bar and squish it a bit
+- Feature: Have checkboxes in the right click context menu of minimalist mode for 'Always on Top' and 'Minimize After Complete'
 
-- Takes a while to boot the exe, add a loading indicator for feedback 
+- Fix: Text pop ups at the bottom of the window when loading or saving seem to mess up spacing of text below 'Start' button and above Progress Bar and squish it a bit
 
-- 'Time Remaining' being cropped in main window, need to add margin
+- Fix: 'Time Remaining' being cropped in main window, need to add margin
+
+- Release version 1.2.0
+
+- Add new dropdown menu to left of main menu
+
+- Add button in main menu dropdown to reset settings to default
+
+- Add button in main menu dropdown to erase all saved presets

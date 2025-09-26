@@ -16,7 +16,8 @@ class Config:
     always_on_top: bool = False
     minimize_after_complete: bool = False
     minimalist_mode_active: bool = False
-    minimalist_rounds_active: bool = False
+    # Show rounds by default in minimalist mode; time/progress remain hidden
+    minimalist_rounds_active: bool = True
     minimalist_time_active: bool = False
     minimalist_progressbar_active: bool = False
     presets: list = None
@@ -48,6 +49,22 @@ class Config:
                 json.dump(asdict(self), f, indent=4)
         except Exception as e:
             print("Error saving settings:", e)
+
+    # New method to restore all configuration values to their defaults
+    def reset_to_default(self):
+        """Reset all configuration attributes to their default values."""
+        from dataclasses import fields
+
+        # Create a new Config instance which will contain default values
+        default_config = Config()
+
+        # Iterate through dataclass fields and copy default values
+        for field in fields(Config):
+            setattr(self, field.name, getattr(default_config, field.name))
+
+        # Ensure presets list has correct length (handled in __post_init__ of default_config)
+        # Save the reset configuration to file so external sessions pick up the change
+        self.save_to_file()
 
     def update(self, **kwargs):
         """Update settings attributes and save to file."""
