@@ -17,5 +17,5 @@ git rm --cached filename12345.filetype
 
 ----------------------------------------------
 
-Rebuild exe to dist directory:
+Build/Rebuild exe to dist directory:
 pyinstaller workout_timer.spec
