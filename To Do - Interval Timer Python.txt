@@ -1,6 +1,6 @@
 ---------------- To Do ----------------
 
-- Takes a while to boot the exe, add a splash indicator for feedback 
+- Create graphic for splash screen
 
 ---------------- Eventual ----------------
 
@@ -156,3 +156,5 @@ menu item causes it to be selected, rather than needing to be clicked again
 - Add button in main menu dropdown to reset settings to default
 
 - Add button in main menu dropdown to erase all saved presets
+
+- Takes a while to boot the exe, add a splash indicator for feedback 
